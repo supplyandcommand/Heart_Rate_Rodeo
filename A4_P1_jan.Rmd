@@ -12,9 +12,11 @@ library(pacman)
 p_load(tidyverse)
 ```
 
-# DATA LOADING & PREPROCESSION
+# DATA LOADING
 chunks:
--
+- files) create list of filenames
+- loading function) function to import and clean one csv file
+- 
 ```{r files}
 ## list of file names
 files <- list.files(path = "data/", pattern="*.csv", full.names = T)
@@ -63,6 +65,16 @@ study1 <- all %>%
   select(-ReadingStart, -ReadingStop)
 
 study2 <- all %>%
-  filter(study == "2")
+  filter(study == "2") #%>%
+  #filter out 13820 NAs that appread exclusively in S2_G7_T3_TurnTaking
+  #we're not discrarding any infromation, there are 13820 NAs in every column
+  #filter(!is.na(time)) 
+```
+
+
+## DOWNSAMPLING
+
+```{r}
+
 ```
 
