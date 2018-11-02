@@ -33,9 +33,9 @@ read_heart <- function(filename) {
          name = str_remove_all(name, ".csv")) %>%
       
       mutate(study = substr(name, 6, 6),
-         diagnosis = substr(name, 8, 9),
-         t = substr(name, 11, 12),
-         condition = substr(name, 14, "15")) %>%
+         group = substr(name, 9, 10),
+         t = substr(name, 12, 12),
+         condition = substr(name, 14, 30)) %>%
       
       select(-name)
     
@@ -43,14 +43,11 @@ read_heart <- function(filename) {
 }
 
 a <- read_heart(files[1])
+
+
 ```
 
-```{r loop}
-## loop to load everything in
-a <- map_df(files, read_csv)
-b <- lapply(files, read_csv)
-
-
-## merge
+```{r}
+b <- map_df(files, read_heart)
 ```
 
