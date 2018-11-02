@@ -9,7 +9,8 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 
 library(pacman)
-p_load(tidyverse)
+p_load(tidyverse,
+       groupdata2) #downsampling
 ```
 
 # DATA LOADING
@@ -74,7 +75,7 @@ study2 <- all %>%
 
 ## DOWNSAMPLING
 
-```{r}
+```{r visual}
 
 ```
 
