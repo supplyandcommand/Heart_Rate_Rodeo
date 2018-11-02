@@ -13,7 +13,8 @@ p_load(tidyverse)
 ```
 
 # DATA LOADING & PREPROCESSION
-
+chunks:
+-
 ```{r files}
 ## list of file names
 files <- list.files(path = "data/", pattern="*.csv", full.names = T)
@@ -21,7 +22,16 @@ files <- list.files(path = "data/", pattern="*.csv", full.names = T)
 
 ```{r loading function}
 read_heart <- function(filename) {
-    raw <- read_csv(filename)
+    raw <- read_csv(filename,
+                    col_types = list(time = col_double(),
+                                     Resp1 = col_double(),
+                                     Resp2 = col_double(),
+                                     ECG1 = col_double(),
+                                     ECG2 = col_double(),
+                                     ReadingStart = col_integer(),
+                                     ReadingStop = col_integer(),
+                                     HR1 = col_double(),
+                                     HR2 = col_double()))
     name <- as.character(filename)
     
     data <- cbind(raw, name) %>%
@@ -45,14 +55,14 @@ read_heart <- function(filename) {
 
 ```
 
-```{r}
-b <- map_df(files, read_heart) 
+```{r running}
+all <- map_df(files, read_heart) 
 
-study1 <- b %>%
+study1 <- all %>%
   filter(study == "1") %>%
   select(-ReadingStart, -ReadingStop)
 
-study2 <- b %>%
+study2 <- all %>%
   filter(study == "2")
 ```
 
