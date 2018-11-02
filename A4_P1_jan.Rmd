@@ -35,15 +35,14 @@ read_heart <- function(filename) {
       mutate(study = substr(name, 6, 6),
          diagnosis = substr(name, 8, 9),
          t = substr(name, 11, 12),
-         condition = substr(name, 14, "*")) %>%
+         condition = substr(name, 14, "15")) %>%
       
-      select(-name) %>%
-      select(ID, study, diagnosis, triangle, nrow, mean:coef_var, se)
+      select(-name)
     
     return(data)
 }
 
-read_heart(files[1])
+a <- read_heart(files[1])
 ```
 
 ```{r loop}
