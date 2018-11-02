@@ -1,0 +1,57 @@
+---
+title: "A4_P1_jan"
+author: "JK"
+date: "2 listopadu 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(pacman)
+p_load(tidyverse)
+```
+
+# DATA LOADING & PREPROCESSION
+
+```{r files}
+## list of file names
+files <- list.files(path = "data/", pattern="*.csv", full.names = T)
+```
+
+```{r loading function}
+read_heart <- function(filename) {
+    raw <- read_csv(filename)
+    name <- as.character(filename)
+    
+    data <- cbind(raw, name) %>%
+      mutate(nrow = nrow(raw)) #%>%
+      #summarise()
+    
+    data <- data %>%
+      mutate(name = str_remove_all(name, "data/"),
+         name = str_remove_all(name, ".csv")) %>%
+      
+      mutate(study = substr(name, 6, 6),
+         diagnosis = substr(name, 8, 9),
+         t = substr(name, 11, 12),
+         condition = substr(name, 14, "*")) %>%
+      
+      select(-name) %>%
+      select(ID, study, diagnosis, triangle, nrow, mean:coef_var, se)
+    
+    return(data)
+}
+
+read_heart(files[1])
+```
+
+```{r loop}
+## loop to load everything in
+a <- map_df(files, read_csv)
+b <- lapply(files, read_csv)
+
+
+## merge
+```
+
