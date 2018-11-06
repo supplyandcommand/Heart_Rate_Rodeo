@@ -50,14 +50,11 @@ read_heart <- function(filename) {
          group = str_remove_all(group, "_"),
          t = substr(name, 12, 13),
          t = str_remove_all(t, "_"),
-         condition = substr(name, 14, 30)) %>%
+         t = str_remove_all(t, "T"),
+         condition = substr(name, 14, 30),
+         condition = str_remove_all(condition, "_")) %>%
       
-      select(-name) %>%
-      
-      mutate(study = factor(study),
-             group = factor(group),
-             t = factor(t),
-             condition = factor(condition))
+      select(-name)
     
     return(data)
 }
@@ -67,7 +64,12 @@ read_heart <- function(filename) {
 ```{r running}
 all <- map_df(files, read_heart) %>%
   mutate(t = factor(t),
-         condition = factor(condition))
+         condition = factor(condition),
+         ReadingStart = as.numeric(ReadingStart),
+         ReadingStop = as.numeric(ReadingStop),
+         nrow = as.numeric(nrow),
+         study = factor(study),
+         group = factor(group))
 
 study1 <- all %>%
   filter(study == "1") %>%
@@ -91,8 +93,13 @@ s1_g1_files <- as.data.frame(files) %>%
 s1_g1_files <- as.character(s1_g1_files$files)
 
 d <- map_df(s1_g1_files, read_heart) %>%
-  mutate(t = factor(t),
-         condition = factor(condition))
+   mutate(t = factor(t),
+         condition = factor(condition),
+         ReadingStart = as.numeric(ReadingStart),
+         ReadingStop = as.numeric(ReadingStop),
+         nrow = as.numeric(nrow),
+         study = factor(study),
+         group = factor(group))
 ```
 
 
