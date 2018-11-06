@@ -61,6 +61,7 @@ read_heart <- function(filename) {
 
 ```
 
+## don't run yet!
 ```{r running}
 all <- map_df(files, read_heart) %>%
   mutate(t = factor(t),
@@ -122,4 +123,47 @@ d2 <- left_join(d1, d, by = "rowname") %>%
   select(-matches("\\.y"))
 ```
 
+
+## OUTLIERS
+
+```{r outlier function}
+removeOuts <- function(ts,threshold){
+  ts[ts > (mean(ts,na.rm=T) +
+             (threshold*sd(ts,na.rm=T))) | 
+       ts < (mean(ts,na.rm=T) -
+             (threshold*sd(ts,na.rm=T)))] = mean(ts,na.rm=T)
+  return(ts)
+}
+
+threshold=2.5
+```
+
+```{r}
+## HR
+d2 %>%
+  mutate(hr1  = removeOuts(HR1.x, threshold),
+         hr2  = removeOuts(HR2.x, threshold)) %>%
+  ggplot() +
+  geom_path(aes(as.numeric(.groups), hr1, color = "idiot 1")) +
+  geom_path(aes(as.numeric(.groups), hr2, color = "idiot 2"))
+
+
+## RESP
+d2 %>%
+  mutate(resp1  = removeOuts(Resp1.x, threshold),
+         resp2  = removeOuts(Resp2.x, threshold)) %>%
+  ggplot() +
+  geom_path(aes(as.numeric(.groups), resp1, color = "idiot 1")) +
+  geom_path(aes(as.numeric(.groups), resp2, color = "idiot 2"))
+
+
+## ECG
+d2 %>%
+  mutate(ecg1  = removeOuts(ECG1, threshold),
+         ecg2  = removeOuts(ECG2, threshold)) %>%
+  ggplot() +
+  geom_path(aes(as.numeric(.groups), ecg1, color = "idiot 1")) +
+  geom_path(aes(as.numeric(.groups), ecg2, color = "idiot 2"))
+
+```
 
