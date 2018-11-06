@@ -1,0 +1,237 @@
+---
+title: "A4_P1_jan"
+author: "JK"
+date: "2 listopadu 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(pacman)
+p_load(tidyverse,
+       groupdata2) #downsampling
+```
+
+# DATA LOADING
+chunks:
+- files) create list of filenames
+- loading function) function to import and clean one csv file
+- 
+```{r files}
+## list of file names
+files <- list.files(path = "data/", pattern="*.csv", full.names = T)
+```
+
+```{r loading function}
+read_heart <- function(filename) {
+    raw <- read_csv(filename,
+                    col_types = list(time = col_double(),
+                                     Resp1 = col_double(),
+                                     Resp2 = col_double(),
+                                     ECG1 = col_double(),
+                                     ECG2 = col_double(),
+                                     ReadingStart = col_integer(),
+                                     ReadingStop = col_integer(),
+                                     HR1 = col_double(),
+                                     HR2 = col_double()))
+    name <- as.character(filename)
+    
+    data <- cbind(raw, name) %>%
+      mutate(nrow = nrow(raw)) #%>%
+      #summarise()
+    
+    data <- data %>%
+      mutate(name = str_remove_all(name, "data/"),
+         name = str_remove_all(name, ".csv")) %>%
+      
+      mutate(study = substr(name, 6, 6),
+         group = substr(name, 9, 10),
+         group = str_remove_all(group, "_"),
+         t = substr(name, 12, 13),
+         t = str_remove_all(t, "_"),
+         t = str_remove_all(t, "T"),
+         condition = substr(name, 14, 30),
+         condition = str_remove_all(condition, "_")) %>%
+      
+      select(-name)
+    
+    return(data)
+}
+
+```
+
+## don't run yet!
+```{r running}
+all <- map_df(files, read_heart) %>%
+  mutate(t = factor(t),
+         condition = factor(condition),
+         ReadingStart = as.numeric(ReadingStart),
+         ReadingStop = as.numeric(ReadingStop),
+         nrow = as.numeric(nrow),
+         study = factor(study),
+         group = factor(group))
+
+study1 <- all %>%
+  filter(study == "1") %>%
+  select(-ReadingStart, -ReadingStop)
+
+study2 <- all %>%
+  filter(study == "2") #%>%
+  #filter out 13820 NAs that appread exclusively in S2_G7_T3_TurnTaking
+  #we're not discrarding any infromation, there are 13820 NAs in every column
+  #filter(!is.na(time)) 
+```
+
+
+## test set
+
+```{r test set}
+s1_g1_files <- as.data.frame(files) %>%
+  filter(str_detect(files, "Study1")) %>%
+  filter(str_detect(files, "G1"))
+
+s1_g1_files <- as.character(s1_g1_files$files)
+
+d <- map_df(s1_g1_files, read_heart) %>%
+   mutate(t = factor(t),
+         condition = factor(condition),
+         ReadingStart = rnorm(637897, 5, sd = 1), 
+         ReadingStop = rnorm(637897, 50, sd = 1),
+         nrow = as.numeric(nrow),
+         study = factor(study),
+         group = factor(group)) %>%
+  rownames_to_column()
+```
+
+
+
+## DOWNSAMPLING
+
+```{r visual}
+d1 = d %>%
+  group(n = 100, method = 'greedy') %>%
+  dplyr::summarise(
+    time = mean(time,na.rm=T),
+    HR1 = mean(HR1,na.rm=T),
+    HR2 = mean(HR2,na.rm=T),
+    Resp1 = mean(Resp1,na.rm=T),
+    Resp2 = mean(Resp2,na.rm=T),
+    rowname = rowname[1]) #the index we use to put them back together 
+
+d2 <- left_join(d1, d, by = "rowname") %>%
+  select(-matches("\\.y"))
+```
+
+
+## OUTLIERS
+
+```{r outlier function}
+removeOuts <- function(ts,threshold){
+  ts[ts > (mean(ts,na.rm=T) +
+             (threshold*sd(ts,na.rm=T))) | 
+       ts < (mean(ts,na.rm=T) -
+             (threshold*sd(ts,na.rm=T)))] = mean(ts,na.rm=T)
+  return(ts)
+}
+
+threshold=2.5
+```
+
+```{r}
+## HR before outlier removal
+ggplot(data = d2) +
+  geom_path(aes(as.numeric(.groups), HR1.x, color = "idiot 1")) +
+  geom_path(aes(as.numeric(.groups), HR2.x, color = "idiot 2"))
+
+## HR - does work
+d2 <- d2 %>%
+  mutate(hr1  = removeOuts(HR1.x, threshold),
+         hr2  = removeOuts(HR2.x, threshold)) 
+
+p1 <- ggplot(data = d2) +
+  geom_path(aes(as.numeric(.groups), hr1, color = "idiot 1")) +
+  geom_path(aes(as.numeric(.groups), hr2, color = "idiot 2")) +
+  labs(x = "time in 100 ms", y = "HR") +
+  theme(legend.position="bottom")
+p1
+
+## RESP before outlier removal
+ggplot(data = d2) +
+  geom_path(aes(as.numeric(.groups), Resp1.x, color = "idiot 1")) +
+  geom_path(aes(as.numeric(.groups), Resp2.x, color = "idiot 2"))
+
+## RESP - does not work 
+d2 <- d2 %>%
+  mutate(resp1  = removeOuts(Resp1.x, threshold),
+         resp2  = removeOuts(Resp2.x, threshold)) 
+
+p2 <- ggplot(data = d2) +
+  geom_path(aes(as.numeric(.groups), resp1, color = "idiot 1")) +
+  geom_path(aes(as.numeric(.groups), resp2, color = "idiot 2")) +
+  labs(x = "time in 100 ms", y = "RESP", legend = "") +
+  theme(legend.position="bottom")
+p2
+
+## ECG before outlier removal 
+ggplot(data = d2) +
+  geom_path(aes(as.numeric(.groups), ECG1, color = "idiot 1")) +
+  geom_path(aes(as.numeric(.groups), ECG2, color = "idiot 2"))
+
+## ECG - hard to interpret 
+d2 <- d2 %>%
+  mutate(ecg1  = removeOuts(ECG1, threshold),
+         ecg2  = removeOuts(ECG2, threshold)) 
+  
+p3 <- ggplot(data = d2) +
+  geom_path(aes(as.numeric(.groups), ecg1, color = "idiot 1")) +
+  geom_path(aes(as.numeric(.groups), ecg2, color = "idiot 2")) +
+  labs(x = "time in 100 ms", y = "ECG") +
+  theme(legend.position="bottom")
+p3
+
+## plots side by side 
+library(gridExtra)
+grid.arrange(p1, p2, p3, ncol=3, top = "Plots of physiological data (HR, RESP, ECG) with downsampling, outlier removal & scaling")
+```
+
+Scaling
+
+```{r}
+d3 <- d2 %>%
+  mutate(resp1S = scale(resp1),
+         resp2S = scale(resp2),
+         hr1S = scale(hr1),
+         hr2S = scale(hr2),
+         ecg1S = scale(ecg1),
+         ecg2S = scale(ecg2))
+
+summary(d3$HR1.x)
+summary(d3$hr1)
+summary(d3$hr1S) #becomes a vector (or something?)
+
+## plots again - does not work because of column 
+p4 <- ggplot(data = d3) +
+  geom_path(aes(as.numeric(.groups), hr1s, color = "idiot 1")) +
+  geom_path(aes(as.numeric(.groups), hr2s, color = "idiot 2")) +
+  labs(x = "time in 100 ms", y = "ECG") +
+  theme(legend.position="bottom")
+p4
+
+p5 <- ggplot(data = d3) +
+  geom_path(aes(as.numeric(.groups), resp1s, color = "idiot 1")) +
+  geom_path(aes(as.numeric(.groups), resp2s, color = "idiot 2")) +
+  labs(x = "time in 100 ms", y = "ECG") +
+  theme(legend.position="bottom")
+p5
+
+p6 <- ggplot(data = d3) +
+  geom_path(aes(as.numeric(.groups), ecg1S, color = "idiot 1")) +
+  geom_path(aes(as.numeric(.groups), ecg2S, color = "idiot 2")) +
+  labs(x = "time in 100 ms", y = "ECG") +
+  theme(legend.position="bottom")
+p6
+
+grid.arrange(p4, p5, p6, ncol=3, top = "Plots of physiological data (HR, RESP, ECG) with downsampling, outlier removal & scaling")
+```
+
