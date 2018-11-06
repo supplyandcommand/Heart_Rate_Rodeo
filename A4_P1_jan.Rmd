@@ -99,7 +99,8 @@ d <- map_df(s1_g1_files, read_heart) %>%
          ReadingStop = rnorm(637897, 50, sd = 1),
          nrow = as.numeric(nrow),
          study = factor(study),
-         group = factor(group))
+         group = factor(group)) %>%
+  rownames_to_column()
 ```
 
 
@@ -107,6 +108,17 @@ d <- map_df(s1_g1_files, read_heart) %>%
 ## DOWNSAMPLING
 
 ```{r visual}
+d1 = d %>%
+  group(n = 100, method = 'greedy') %>%
+  dplyr::summarise(
+    time = mean(time,na.rm=T),
+    HR1 = mean(HR1,na.rm=T),
+    HR2 = mean(HR2,na.rm=T),
+    Resp1 = mean(Resp1,na.rm=T),
+    Resp2 = mean(Resp2,na.rm=T),
+    rowname = rowname[1])
 
+expanded_res <- left_join(d1, d, by = "rowname") %>%
+  select(-matches("\\.y"))
 ```
 
