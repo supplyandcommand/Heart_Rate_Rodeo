@@ -95,8 +95,8 @@ s1_g1_files <- as.character(s1_g1_files$files)
 d <- map_df(s1_g1_files, read_heart) %>%
    mutate(t = factor(t),
          condition = factor(condition),
-         ReadingStart = as.numeric(ReadingStart),
-         ReadingStop = as.numeric(ReadingStop),
+         ReadingStart = rnorm(637897, 5, sd = 1), 
+         ReadingStop = rnorm(637897, 50, sd = 1),
          nrow = as.numeric(nrow),
          study = factor(study),
          group = factor(group))
