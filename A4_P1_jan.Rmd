@@ -118,7 +118,8 @@ d1 = d %>%
     Resp2 = mean(Resp2,na.rm=T),
     rowname = rowname[1])
 
-expanded_res <- left_join(d1, d, by = "rowname") %>%
+d2 <- left_join(d1, d, by = "rowname") %>%
   select(-matches("\\.y"))
 ```
+
 
