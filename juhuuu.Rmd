@@ -1,0 +1,116 @@
+---
+title: "A4_P1_Victor"
+author: "Victor Møller"
+date: "6 nov 2018"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(pacman)
+p_load(tidyverse,
+       groupdata2) #downsampling
+```
+
+# DATA LOADING
+chunks:
+- files) create list of filenames
+- loading function) function to import and clean one csv file
+- 
+```{r files}
+## list of file names
+files <- list.files(path = "data/", pattern="*.csv", full.names = T)
+```
+
+```{r loading function}
+read_heart <- function(filename) {
+    raw <- read_csv(filename,
+                    col_types = list(time = col_double(),
+                                     Resp1 = col_double(),
+                                     Resp2 = col_double(),
+                                     ECG1 = col_double(),
+                                     ECG2 = col_double(),
+                                     ReadingStart = col_integer(),
+                                     ReadingStop = col_integer(),
+                                     HR1 = col_double(),
+                                     HR2 = col_double()))
+    name <- as.character(filename)
+    
+    data <- cbind(raw, name) %>%
+      mutate(nrow = nrow(raw)) #%>%
+      #summarise()
+    
+    data <- data %>%
+      mutate(name = str_remove_all(name, "data/"),
+         name = str_remove_all(name, ".csv")) %>%
+      
+      mutate(study = substr(name, 6, 6),
+         group = substr(name, 9, 10),
+         group = str_remove_all(group, "_"),
+         t = substr(name, 12, 13),
+         t = str_remove_all(t, "_"),
+         t = str_remove_all(t, "T"),
+         condition = substr(name, 14, 30),
+         condition = str_remove_all(condition, "_")) %>%
+      
+      select(-name)
+    
+    return(data)
+}
+```
+
+```{r running}
+all <- map_df(files, read_heart) %>%
+  mutate(t = factor(t),
+         condition = factor(condition),
+         ReadingStart = as.numeric(ReadingStart),
+         ReadingStop = as.numeric(ReadingStop),
+         nrow = as.numeric(nrow),
+         study = factor(study),
+         group = factor(group))
+study1 <- all %>%
+  filter(study == "1") %>%
+  select(-ReadingStart, -ReadingStop)
+study2 <- all %>%
+  filter(study == "2") #%>%
+  #filter out 13820 NAs that appread exclusively in S2_G7_T3_TurnTaking
+  #we're not discrarding any infromation, there are 13820 NAs in every column
+  #filter(!is.na(time)) 
+```
+
+
+## test set
+
+```{r test set}
+s1_g1_files <- as.data.frame(files) %>%
+  filter(str_detect(files, "Study1")) %>%
+  filter(str_detect(files, "G1"))
+
+s1_g1_files <- as.character(s1_g1_files$files)
+
+d <- map_df(s1_g1_files, read_heart) %>%
+   mutate(t = factor(t),
+         ReadingStart = rnorm(637897, 5, sd = 1), 
+         ReadingStop = rnorm(637897, 50, sd = 1),
+         condition = factor(condition),
+         nrow = as.numeric(nrow),
+         study = factor(study),
+         group = factor(group))
+
+```
+
+## DOWNSAMPLING
+
+```{r visual}
+
+d1 = d %>%
+group(n = 100, method = 'greedy') %>%
+dplyr::summarise(
+time = mean(time,na.rm=T),
+HR1 = mean(HR1,na.rm=T),
+HR2 = mean(HR2,na.rm=T),
+Resp1 = mean(Resp1,na.rm=T),
+Resp2 = mean(Resp2,na.rm=T))
+
+```
