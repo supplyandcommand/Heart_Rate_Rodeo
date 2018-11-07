@@ -10,6 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(pacman)
 p_load(tidyverse,
+       gridExtra, #grid.arrange()
        groupdata2) #downsampling
 ```
 
@@ -117,7 +118,7 @@ d1 = d %>%
     HR2 = mean(HR2,na.rm=T),
     Resp1 = mean(Resp1,na.rm=T),
     Resp2 = mean(Resp2,na.rm=T),
-    rowname = rowname[1])
+    rowname = rowname[1]) #the index we use to put them back together 
 
 d2 <- left_join(d1, d, by = "rowname") %>%
   select(-matches("\\.y"))
@@ -139,31 +140,119 @@ threshold=2.5
 ```
 
 ```{r}
-## HR
-d2 %>%
+## HR before outlier removal
+ggplot(data = d2) +
+  geom_path(aes(as.numeric(.groups), HR1.x, color = "P1")) +
+  geom_path(aes(as.numeric(.groups), HR2.x, color = "P2"))
+
+## HR - does work
+d3 <- d2 %>%
   mutate(hr1  = removeOuts(HR1.x, threshold),
-         hr2  = removeOuts(HR2.x, threshold)) %>%
-  ggplot() +
-  geom_path(aes(as.numeric(.groups), hr1, color = "idiot 1")) +
-  geom_path(aes(as.numeric(.groups), hr2, color = "idiot 2"))
+         hr2  = removeOuts(HR2.x, threshold)) 
+
+p1 <- ggplot(data = d3) +
+  geom_path(aes(as.numeric(.groups), hr1, color = "P1")) +
+  geom_path(aes(as.numeric(.groups), hr2, color = "P2")) +
+  labs(x = "time in 100 ms", y = "HR") +
+  theme(legend.position="bottom")
+p1
 
 
-## RESP
-d2 %>%
+
+## RESP before outlier removal
+ggplot(data = d2) +
+  geom_path(aes(as.numeric(.groups), Resp1.x, color = "P1")) +
+  geom_path(aes(as.numeric(.groups), Resp2.x, color = "P2"))
+
+## RESP - does not work 
+d3 <- d2 %>%
   mutate(resp1  = removeOuts(Resp1.x, threshold),
-         resp2  = removeOuts(Resp2.x, threshold)) %>%
-  ggplot() +
-  geom_path(aes(as.numeric(.groups), resp1, color = "idiot 1")) +
-  geom_path(aes(as.numeric(.groups), resp2, color = "idiot 2"))
+         resp2  = removeOuts(Resp2.x, threshold)) 
+
+p2 <- ggplot(data = d3) +
+  geom_path(aes(as.numeric(.groups), resp1, color = "P1")) +
+  geom_path(aes(as.numeric(.groups), resp2, color = "P2")) +
+  labs(x = "time in 100 ms", y = "RESP", legend = "") +
+  theme(legend.position="bottom")
+p2
 
 
-## ECG
-d2 %>%
+
+## ECG before outlier removal 
+ggplot(data = d2) +
+  geom_path(aes(as.numeric(.groups), ECG1, color = "P1")) +
+  geom_path(aes(as.numeric(.groups), ECG2, color = "P2"))
+
+## ECG - hard to interpret 
+d3 <- d2 %>%
   mutate(ecg1  = removeOuts(ECG1, threshold),
-         ecg2  = removeOuts(ECG2, threshold)) %>%
-  ggplot() +
-  geom_path(aes(as.numeric(.groups), ecg1, color = "idiot 1")) +
-  geom_path(aes(as.numeric(.groups), ecg2, color = "idiot 2"))
+         ecg2  = removeOuts(ECG2, threshold)) 
+  
+p3 <- ggplot(data = d3) +
+  geom_path(aes(as.numeric(.groups), ecg1, color = "P1")) +
+  geom_path(aes(as.numeric(.groups), ecg2, color = "P2")) +
+  labs(x = "time in 100 ms", y = "ECG") +
+  theme(legend.position="bottom")
+p3
 
+
+
+## plots side by side 
+grid.arrange(p1, p2, p3, ncol=3, top = "Plots of physiological data (HR, RESP, ECG) with downsampling, outlier removal & scaling")
+```
+
+Scaling
+
+```{r scaling function}
+z_scale <- function(column){
+  column_c <- (column - mean(column)) / sd(column)
+}
+```
+
+
+```{r sclaing}
+d4 <- d3 %>%
+  mutate(resp1S = z_scale(resp1),
+         resp2S = z_scale(resp2),
+         hr1S = z_scale(hr1),
+         hr2S = z_scale(hr2),
+         ecg1S = z_scale(ecg1),
+         ecg2S = z_scale(ecg2))
+
+summary(d4$HR1.x)
+summary(d4$hr1)
+summary(d4$hr1S)
+```
+
+```{r scaling plots}
+# scaled HR
+p4 <- ggplot(data = d4) +
+  geom_path(aes(as.numeric(.groups), hr1s, color = "P1")) +
+  geom_path(aes(as.numeric(.groups), hr2s, color = "P2")) +
+  labs(x = "time in 100 ms", y = "ECG") +
+  theme(legend.position="bottom")
+p4
+
+
+# scaled RESP
+p5 <- ggplot(data = d4) +
+  geom_path(aes(as.numeric(.groups), resp1s, color = "P1")) +
+  geom_path(aes(as.numeric(.groups), resp2s, color = "P2")) +
+  labs(x = "time in 100 ms", y = "ECG") +
+  theme(legend.position="bottom")
+p5
+
+
+# scaled ECG
+p6 <- ggplot(data = d4) +
+  geom_path(aes(as.numeric(.groups), ecg1S, color = "P1")) +
+  geom_path(aes(as.numeric(.groups), ecg2S, color = "P2")) +
+  labs(x = "time in 100 ms", y = "ECG") +
+  theme(legend.position="bottom")
+p6
+
+
+## colected
+grid.arrange(p4, p5, p6, ncol=3, top = "Plots of physiological data (HR, RESP, ECG) with downsampling, outlier removal & scaling")
 ```
 
