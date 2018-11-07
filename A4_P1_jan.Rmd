@@ -139,67 +139,78 @@ removeOuts <- function(ts,threshold){
 threshold=2.5
 ```
 
+plots before outlier removal 
+
 ```{r}
 ## HR before outlier removal
-ggplot(data = d2) +
+p1 <- ggplot(data = d2) +
   geom_path(aes(as.numeric(.groups), HR1.x, color = "P1")) +
-  geom_path(aes(as.numeric(.groups), HR2.x, color = "P2"))
-
-## HR - does work
-d3 <- d2 %>%
-  mutate(hr1  = removeOuts(HR1.x, threshold),
-         hr2  = removeOuts(HR2.x, threshold)) 
-
-p1 <- ggplot(data = d3) +
-  geom_path(aes(as.numeric(.groups), hr1, color = "P1")) +
-  geom_path(aes(as.numeric(.groups), hr2, color = "P2")) +
+  geom_path(aes(as.numeric(.groups), HR2.x, color = "P2")) +
   labs(x = "time in 100 ms", y = "HR") +
   theme(legend.position="bottom")
-p1
 
-
-
-## RESP before outlier removal
-ggplot(data = d2) +
+## REST before outlier removal 
+p2 <- ggplot(data = d2) +
   geom_path(aes(as.numeric(.groups), Resp1.x, color = "P1")) +
-  geom_path(aes(as.numeric(.groups), Resp2.x, color = "P2"))
+  geom_path(aes(as.numeric(.groups), Resp2.x, color = "P2")) +
+  labs(x = "time in 100 ms", y = "RESP") +
+  theme(legend.position="bottom")
 
-## RESP - does not work 
+## ECG before outlier removal 
+p3 <- ggplot(data = d2) +
+  geom_path(aes(as.numeric(.groups), ECG1, color = "P1")) +
+  geom_path(aes(as.numeric(.groups), ECG2, color = "P2")) +
+  labs(x = "time in 100 ms", y = "ECG") +
+  theme(legend.position="bottom")
+
+grid.arrange(p1, p2, p3, ncol=3, top = "Plots of physiological data (HR, RESP, ECG) after downsampling")
+
+```
+
+outlier removal 
+
+```{r}
+
+## outlier removal 
 d3 <- d2 %>%
-  mutate(resp1  = removeOuts(Resp1.x, threshold),
-         resp2  = removeOuts(Resp2.x, threshold)) 
+  mutate(hr1  = removeOuts(HR1.x, threshold),
+         hr2  = removeOuts(HR2.x, threshold),
+         ecg1 = removeOuts(ECG1, threshold),
+         ecg2 = removeOuts(ECG2, threshold),
+         resp1 = removeOuts(Resp1.x, threshold),
+         resp2 = removeOuts(Resp2.x, threshold)) 
 
-p2 <- ggplot(data = d3) +
+
+```
+
+plots after outlier removal 
+
+```{r}
+## HR plot after outlier removal 
+p4 <- ggplot(data = d3) +
+  geom_path(aes(as.numeric(.groups), hr1, color = "P1")) +
+  geom_path(aes(as.numeric(.groups), hr2, color = "P2")) +
+  labs(x = "time in 100 ms", y = "RESP", legend = "") +
+  theme(legend.position="bottom")
+
+## RESP plot after outlier removal 
+p5 <- ggplot(data = d3) +
   geom_path(aes(as.numeric(.groups), resp1, color = "P1")) +
   geom_path(aes(as.numeric(.groups), resp2, color = "P2")) +
   labs(x = "time in 100 ms", y = "RESP", legend = "") +
   theme(legend.position="bottom")
-p2
 
-
-
-## ECG before outlier removal 
-ggplot(data = d2) +
-  geom_path(aes(as.numeric(.groups), ECG1, color = "P1")) +
-  geom_path(aes(as.numeric(.groups), ECG2, color = "P2"))
-
-## ECG - hard to interpret 
-d3 <- d2 %>%
-  mutate(ecg1  = removeOuts(ECG1, threshold),
-         ecg2  = removeOuts(ECG2, threshold)) 
-  
-p3 <- ggplot(data = d3) +
+## ECG plot after outlier removal 
+p6 <- ggplot(data = d3) +
   geom_path(aes(as.numeric(.groups), ecg1, color = "P1")) +
   geom_path(aes(as.numeric(.groups), ecg2, color = "P2")) +
   labs(x = "time in 100 ms", y = "ECG") +
   theme(legend.position="bottom")
-p3
-
-
 
 ## plots side by side 
-grid.arrange(p1, p2, p3, ncol=3, top = "Plots of physiological data (HR, RESP, ECG) with downsampling, outlier removal & scaling")
+grid.arrange(p4, p5, p6, ncol=3, top = "Plots of physiological data (HR, RESP, ECG) after downsampling & outlier removal")
 ```
+
 
 Scaling
 
@@ -212,6 +223,7 @@ z_scale <- function(column){
 
 ```{r sclaing}
 d4 <- d3 %>%
+  group_by(condition, group) %>%
   mutate(resp1S = z_scale(resp1),
          resp2S = z_scale(resp2),
          hr1S = z_scale(hr1),
@@ -219,40 +231,58 @@ d4 <- d3 %>%
          ecg1S = z_scale(ecg1),
          ecg2S = z_scale(ecg2))
 
-summary(d4$HR1.x)
-summary(d4$hr1)
-summary(d4$hr1S)
 ```
 
 ```{r scaling plots}
 # scaled HR
-p4 <- ggplot(data = d4) +
-  geom_path(aes(as.numeric(.groups), hr1s, color = "P1")) +
-  geom_path(aes(as.numeric(.groups), hr2s, color = "P2")) +
+p7 <- ggplot(data = d4) +
+  geom_path(aes(as.numeric(.groups), hr1S, color = "P1")) +
+  geom_path(aes(as.numeric(.groups), hr2S, color = "P2")) +
   labs(x = "time in 100 ms", y = "ECG") +
   theme(legend.position="bottom")
-p4
-
 
 # scaled RESP
-p5 <- ggplot(data = d4) +
-  geom_path(aes(as.numeric(.groups), resp1s, color = "P1")) +
-  geom_path(aes(as.numeric(.groups), resp2s, color = "P2")) +
+p8 <- ggplot(data = d4) +
+  geom_path(aes(as.numeric(.groups), resp1S, color = "P1")) +
+  geom_path(aes(as.numeric(.groups), resp2S, color = "P2")) +
   labs(x = "time in 100 ms", y = "ECG") +
   theme(legend.position="bottom")
-p5
-
 
 # scaled ECG
-p6 <- ggplot(data = d4) +
+p9 <- ggplot(data = d4) +
   geom_path(aes(as.numeric(.groups), ecg1S, color = "P1")) +
   geom_path(aes(as.numeric(.groups), ecg2S, color = "P2")) +
   labs(x = "time in 100 ms", y = "ECG") +
   theme(legend.position="bottom")
-p6
-
 
 ## colected
-grid.arrange(p4, p5, p6, ncol=3, top = "Plots of physiological data (HR, RESP, ECG) with downsampling, outlier removal & scaling")
+grid.arrange(p7, p8, p9, ncol=3, top = "Plots of physiological data (HR, RESP, ECG) with downsampling, outlier removal & scaling")
+```
+
+
+## CONDITIONS
+```{r}
+c1 <- ggplot(data = d4) +
+  geom_path(aes(as.numeric(time.x), hr1S, color = "P1")) +
+  geom_path(aes(as.numeric(time.x), hr2S, color = "P2")) +
+  labs(x = "time in 100 ms", y = "ECG") +
+  theme(legend.position="bottom")
+
+# scaled RESP
+c2 <- ggplot(data = d4) +
+  geom_path(aes(as.numeric(time.x), resp1S, color = "P1")) +
+  geom_path(aes(as.numeric(time.x), resp2S, color = "P2")) +
+  labs(x = "time in 100 ms", y = "ECG") +
+  theme(legend.position="bottom")
+
+# scaled ECG
+c3 <- ggplot(data = d4) +
+  geom_path(aes(as.numeric(time.x), ecg1S, color = "P1")) +
+  geom_path(aes(as.numeric(time.x), ecg2S, color = "P2")) +
+  labs(x = "time in 100 ms", y = "ECG") +
+  theme(legend.position="bottom")
+
+## colected
+grid.arrange(c1, c2, c3, ncol=3, top = "Plots of physiological data (HR, RESP, ECG) with downsampling, outlier removal & scaling")
 ```
 
