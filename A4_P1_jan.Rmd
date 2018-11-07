@@ -295,15 +295,16 @@ grid.arrange(c1, c2, c3, ncol=3, top = "Plots of physiological data (HR, RESP, E
 ```
 
 
-## optimal parametrs
-for CRQA
+
+## CRQA
+optimal parameters
 ```{r}
 par = list(lgM = 50, 
            steps = seq(1, 6, 1), 
-           radiusspan = 100, 
+           radiusspan = 100,
            radiussample = 40, 
            normalize = 0, 
-           rescale = 0, 
+           rescale = 1, #slide code = 0
            mindiagline = 2,
            minvertline = 2, 
            tw = 0, 
@@ -313,6 +314,39 @@ par = list(lgM = 50,
            typeami = "mindip")
 
 ans = optimizeParam(d4$hr1S, d4$hr2S, par, min.rec = 3.5, max.rec = 4.5)
+ans
 
+```
+
+
+crqa
+```{r}
+Results = crqa(d4$hr1S, d4$hr2S, 
+               delay=ans$delay, 
+               embed=ans$emddim, 
+               radius=ans$radius,
+               normalize=0, rescale=0, mindiagline =2, minvertline = 2)
+```
+
+
+"represent the plot"
+```{r}
+RP=Results$RP
+RP = matrix(as.numeric(RP), nrow = ncol(RP))
+cols = c("white","blue4")
+
+image(RP, xlab = "", ylab = "", col = cols)
+```
+
+
+"explore lags of coordination"
+```{r}
+Profile=drpdfromts(x, x,datatype = 'continuous',ws=50,radius=radius)
+timecourse = round( seq(-5000,5000,100)/1000, digit = 1)
+maxlag = Profile$maxlag/1000
+profile = Profile$profile*100
+Prof=data.frame(profile)
+
+ggplot(Prof, aes(timecourse,profile))+geom_line()+ geom_vline(xintercept = timecourse[maxlag], colour='red')
 ```
 
