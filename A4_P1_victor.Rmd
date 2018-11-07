@@ -199,13 +199,19 @@ grid.arrange(p1, p2, p3, ncol=3, top = "Plots of physiological data (HR, RESP, E
 Scaling
 
 ```{r}
+
+z_scale <- function(column){
+  column_c <- (column - mean(column)) / sd(column)
+}
+
+rm(d3)
 d3 <- d2 %>%
-  mutate(resp1S = scale(resp1),
-         resp2S = scale(resp2),
-         hr1S = scale(hr1),
-         hr2S = scale(hr2),
-         ecg1S = scale(ecg1),
-         ecg2S = scale(ecg2))
+  mutate(resp1S = z_scale(resp1),
+         resp2S = z_scale(resp2),
+         hr1S = z_scale(hr1),
+         hr2S = z_scale(hr2),
+         ecg1S = z_scale(ecg1),
+         ecg2S = z_scale(ecg2))
 
 summary(d3$HR1.x)
 summary(d3$hr1)
@@ -213,15 +219,15 @@ summary(d3$hr1S) #becomes a vector (or something?)
 
 ## plots again - does not work because of column 
 p4 <- ggplot(data = d3) +
-  geom_path(aes(as.numeric(.groups), hr1s, color = "idiot 1")) +
-  geom_path(aes(as.numeric(.groups), hr2s, color = "idiot 2")) +
+  geom_path(aes(as.numeric(.groups), hr1S, color = "idiot 1")) +
+  geom_path(aes(as.numeric(.groups), hr2S, color = "idiot 2")) +
   labs(x = "time in 100 ms", y = "ECG") +
   theme(legend.position="bottom")
 p4
 
 p5 <- ggplot(data = d3) +
-  geom_path(aes(as.numeric(.groups), resp1s, color = "idiot 1")) +
-  geom_path(aes(as.numeric(.groups), resp2s, color = "idiot 2")) +
+  geom_path(aes(as.numeric(.groups), resp1S, color = "idiot 1")) +
+  geom_path(aes(as.numeric(.groups), resp2S, color = "idiot 2")) +
   labs(x = "time in 100 ms", y = "ECG") +
   theme(legend.position="bottom")
 p5
