@@ -104,8 +104,6 @@ d <- map_df(s1_g1_files, read_heart) %>%
   rownames_to_column()
 ```
 
-
-
 ## DOWNSAMPLING
 
 ```{r visual}
@@ -139,16 +137,17 @@ threshold=2.5
 ```
 
 ```{r}
-## HR before outlier removal
+## HR plt before outlier removal
 ggplot(data = d2) +
   geom_path(aes(as.numeric(.groups), HR1.x, color = "idiot 1")) +
   geom_path(aes(as.numeric(.groups), HR2.x, color = "idiot 2"))
 
-## HR - does work
+## HR outlier removal
 d2 <- d2 %>%
   mutate(hr1  = removeOuts(HR1.x, threshold),
          hr2  = removeOuts(HR2.x, threshold)) 
 
+## HR plot after outlier removal 
 p1 <- ggplot(data = d2) +
   geom_path(aes(as.numeric(.groups), hr1, color = "idiot 1")) +
   geom_path(aes(as.numeric(.groups), hr2, color = "idiot 2")) +
@@ -156,16 +155,17 @@ p1 <- ggplot(data = d2) +
   theme(legend.position="bottom")
 p1
 
-## RESP before outlier removal
+## RESP plot before outlier removal
 ggplot(data = d2) +
   geom_path(aes(as.numeric(.groups), Resp1.x, color = "idiot 1")) +
   geom_path(aes(as.numeric(.groups), Resp2.x, color = "idiot 2"))
 
-## RESP - does not work 
+## RESP outlier removal 
 d2 <- d2 %>%
   mutate(resp1  = removeOuts(Resp1.x, threshold),
          resp2  = removeOuts(Resp2.x, threshold)) 
 
+## RESP plot after removal
 p2 <- ggplot(data = d2) +
   geom_path(aes(as.numeric(.groups), resp1, color = "idiot 1")) +
   geom_path(aes(as.numeric(.groups), resp2, color = "idiot 2")) +
@@ -173,16 +173,17 @@ p2 <- ggplot(data = d2) +
   theme(legend.position="bottom")
 p2
 
-## ECG before outlier removal 
+## ECG plot before outlier removal 
 ggplot(data = d2) +
   geom_path(aes(as.numeric(.groups), ECG1, color = "idiot 1")) +
   geom_path(aes(as.numeric(.groups), ECG2, color = "idiot 2"))
 
-## ECG - hard to interpret 
+## ECG outlier removal
 d2 <- d2 %>%
   mutate(ecg1  = removeOuts(ECG1, threshold),
          ecg2  = removeOuts(ECG2, threshold)) 
-  
+
+## ECG plot after outlier removal 
 p3 <- ggplot(data = d2) +
   geom_path(aes(as.numeric(.groups), ecg1, color = "idiot 1")) +
   geom_path(aes(as.numeric(.groups), ecg2, color = "idiot 2")) +
@@ -192,7 +193,7 @@ p3
 
 ## plots side by side 
 library(gridExtra)
-grid.arrange(p1, p2, p3, ncol=3, top = "Plots of physiological data (HR, RESP, ECG) with downsampling, outlier removal & scaling")
+grid.arrange(p1, p2, p3, ncol=3, top = "Plots of physiological data (HR, RESP, ECG) with downsampling, outlier removal")
 ```
 
 Scaling
