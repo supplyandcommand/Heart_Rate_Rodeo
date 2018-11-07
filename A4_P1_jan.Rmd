@@ -11,6 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(pacman)
 p_load(tidyverse,
        gridExtra, #grid.arrange()
+       crqa, #crqa()
        groupdata2) #downsampling
 ```
 
@@ -259,20 +260,27 @@ p9 <- ggplot(data = d4) +
 grid.arrange(p7, p8, p9, ncol=3, top = "Plots of physiological data (HR, RESP, ECG) with downsampling, outlier removal & scaling")
 ```
 
+```{r clean glob env}
+rm(d1, d2, d3)
+rm(p1, p2, p3, p4, p5, p6, p7, p8, p9)
+rm(c1, c2, c3)
+```
+
 
 ## CONDITIONS
+now with time on the x axis
 ```{r}
 c1 <- ggplot(data = d4) +
   geom_path(aes(as.numeric(time.x), hr1S, color = "P1")) +
   geom_path(aes(as.numeric(time.x), hr2S, color = "P2")) +
-  labs(x = "time in 100 ms", y = "ECG") +
+  labs(x = "time in 100 ms", y = "HR") +
   theme(legend.position="bottom")
 
 # scaled RESP
 c2 <- ggplot(data = d4) +
   geom_path(aes(as.numeric(time.x), resp1S, color = "P1")) +
   geom_path(aes(as.numeric(time.x), resp2S, color = "P2")) +
-  labs(x = "time in 100 ms", y = "ECG") +
+  labs(x = "time in 100 ms", y = "RESP") +
   theme(legend.position="bottom")
 
 # scaled ECG
@@ -284,5 +292,27 @@ c3 <- ggplot(data = d4) +
 
 ## colected
 grid.arrange(c1, c2, c3, ncol=3, top = "Plots of physiological data (HR, RESP, ECG) with downsampling, outlier removal & scaling")
+```
+
+
+## optimal parametrs
+for CRQA
+```{r}
+par = list(lgM = 50, 
+           steps = seq(1, 6, 1), 
+           radiusspan = 100, 
+           radiussample = 40, 
+           normalize = 0, 
+           rescale = 0, 
+           mindiagline = 2,
+           minvertline = 2, 
+           tw = 0, 
+           whiteline = FALSE, 
+           recpt = FALSE, 
+           fnnpercent = 10, 
+           typeami = "mindip")
+
+ans = optimizeParam(d4$hr1S, d4$hr2S, par, min.rec = 3.5, max.rec = 4.5)
+
 ```
 
