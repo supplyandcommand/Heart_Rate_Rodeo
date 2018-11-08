@@ -249,17 +249,18 @@ optimizeBitch <- function(df, group_nr) {
   
   
   ## data
-  bind <- rbind.data.frame(Synchronous_HR,
-                           Synchronous_RESP,
-                           Synchronous_ECG,
-                           Conversation_HR,
-                           Conversation_RESP,
-                           Conversation_ECG,
-                           TurnTaking_HR,
-                           TurnTaking_RESP,
-                           TurnTaking_ECG) %>%
+  bind <- rbind.data.frame("Synchronous_HR" = Synchronous_HR,
+                           "Synchronous_RESP" = Synchronous_RESP,
+                           "Synchronous_ECG" = Synchronous_ECG,
+                           "Conversation_HR" = Conversation_HR,
+                           "Conversation_RESP" = Conversation_RESP,
+                           "Conversation_ECG" = Conversation_ECG,
+                           "TurnTaking_HR" = TurnTaking_HR,
+                           "TurnTaking_RESP" = TurnTaking_RESP,
+                           "TurnTaking_ECG" = TurnTaking_ECG) %>%
     cbind.data.frame('group' = group_nr) %>%
-    rownames_to_column()
+    rownames_to_column() %>%
+    separate(rowname, c("Condition", "Metric"), "_")
   
   
   ## return
@@ -271,7 +272,7 @@ optimizeBitch <- function(df, group_nr) {
 ## running optimisation
 ```{r optimize run}
 start = Sys.time()
-a2 <- optimizeBitch(d4, "10")
+a3 <- optimizeBitch(d4, "10")
 stop = Sys.time()
 
 stop - start
