@@ -63,7 +63,9 @@ read_heart <- function(filename) {
 
 ```
 
-## don't run yet!
+
+## all data
+
 ```{r running}
 all <- map_df(files, read_heart) %>%
   mutate(t = factor(t),
@@ -72,11 +74,13 @@ all <- map_df(files, read_heart) %>%
          ReadingStop = as.numeric(ReadingStop),
          nrow = as.numeric(nrow),
          study = factor(study),
-         group = factor(group))
+         group = factor(group)) %>%
+  rownames_to_column()
 
 study1 <- all %>%
   filter(study == "1") %>%
   select(-ReadingStart, -ReadingStop)
+
 
 study2 <- all %>%
   filter(study == "2") #%>%
@@ -341,7 +345,11 @@ image(RP, xlab = "", ylab = "", col = cols)
 
 "explore lags of coordination"
 ```{r}
-Profile=drpdfromts(x, x,datatype = 'continuous',ws=50,radius=radius)
+Profile=drpdfromts(d4$hr1S, d4$hr2S, 
+                   datatype = 'continuous',
+                   ws=50, 
+                   radius=ans$radius)
+
 timecourse = round( seq(-5000,5000,100)/1000, digit = 1)
 maxlag = Profile$maxlag/1000
 profile = Profile$profile*100

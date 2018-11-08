@@ -1,0 +1,182 @@
+---
+title: "A4_P1_function"
+author: "JK"
+date: "8 listopadu 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(pacman)
+p_load(tidyverse,
+       gridExtra, #grid.arrange()
+       crqa, #crqa()
+       groupdata2) #downsampling
+```
+
+
+
+```{r data loading}
+files <- list.files(path = "data/", pattern="*.csv", full.names = T)
+
+read_heart <- function(filename) {
+    raw <- read_csv(filename,
+                    col_types = list(time = col_double(),
+                                     Resp1 = col_double(),
+                                     Resp2 = col_double(),
+                                     ECG1 = col_double(),
+                                     ECG2 = col_double(),
+                                     ReadingStart = col_integer(),
+                                     ReadingStop = col_integer(),
+                                     HR1 = col_double(),
+                                     HR2 = col_double()))
+    name <- as.character(filename)
+    
+    data <- cbind(raw, name) %>%
+      mutate(nrow = nrow(raw)) #%>%
+      #summarise()
+    
+    data <- data %>%
+      mutate(name = str_remove_all(name, "data/"),
+         name = str_remove_all(name, ".csv")) %>%
+      
+      mutate(study = substr(name, 6, 6),
+         group = substr(name, 9, 10),
+         group = str_remove_all(group, "_"),
+         t = substr(name, 12, 13),
+         t = str_remove_all(t, "_"),
+         t = str_remove_all(t, "T"),
+         condition = substr(name, 14, 30),
+         condition = str_remove_all(condition, "_")) %>%
+      
+      select(-name)
+    
+    return(data)
+}
+
+all <- map_df(files, read_heart) %>%
+  mutate(t = factor(t),
+         condition = factor(condition),
+         ReadingStart = as.numeric(ReadingStart),
+         ReadingStop = as.numeric(ReadingStop),
+         nrow = as.numeric(nrow),
+         study = factor(study),
+         group = factor(group)) %>%
+  rownames_to_column()
+```
+
+
+```{r preprocessing}
+idiot1_idiot2_analysis <- function(data, threshold) {
+  
+  ## DOWNSAMPLING
+  
+  # summarise
+  d1 <- data %>%
+    group(n = 100, method = 'greedy') %>%
+    dplyr::summarise(
+      time = mean(time,na.rm=T),
+      HR1 = mean(HR1,na.rm=T),
+      HR2 = mean(HR2,na.rm=T),
+      Resp1 = mean(Resp1,na.rm=T),
+      Resp2 = mean(Resp2,na.rm=T),
+      rowname = rowname[1]) #the index we use to put them back together 
+  
+  # collect
+  d2 <- left_join(d1, data, by = "rowname") %>%
+    select(-matches("\\.y"))
+  
+  
+  
+  ## OUTLIERS
+  # funciton
+  removeOuts <- function(ts,threshold){
+    ts[ts > (mean(ts,na.rm=T) +
+               (threshold*sd(ts,na.rm=T))) | 
+         ts < (mean(ts,na.rm=T) -
+                 (threshold*sd(ts,na.rm=T)))] = mean(ts,na.rm=T)
+    return(ts)
+  }
+  
+  # set threshold
+  threshold=threshold
+  
+  # do the job
+  d3 <- d2 %>%
+    group_by(group) %>%
+    mutate(hr1  = removeOuts(HR1.x, threshold),
+           hr2  = removeOuts(HR2.x, threshold),
+           ecg1 = removeOuts(ECG1, threshold),
+           ecg2 = removeOuts(ECG2, threshold),
+           resp1 = removeOuts(Resp1.x, threshold),
+           resp2 = removeOuts(Resp2.x, threshold))
+  
+  
+  
+  ## SCALING
+  
+  # function
+  z_scale <- function(column){
+    column_c <- (column - mean(column)) / sd(column)
+  }
+  
+  # do the job
+  d4 <- d3 %>%
+    group_by(condition, group) %>%
+    mutate(resp1S = z_scale(resp1),
+           resp2S = z_scale(resp2),
+           hr1S = z_scale(hr1),
+           hr2S = z_scale(hr2),
+           ecg1S = z_scale(ecg1),
+           ecg2S = z_scale(ecg2))
+  
+  
+  ## OUTPUT
+  return(d4)
+  
+}
+
+d4 <- idiot1_idiot2_analysis(all, threshold = 2.5)
+```
+
+
+```{r plotting}
+plotty <- function(data, group_nr){
+  c1 <- data %>%
+    filter(group == group_nr) %>%
+    ggplot() +
+    geom_line(aes(as.numeric(time.x), hr1S, color = "P1")) +
+    geom_line(aes(as.numeric(time.x), hr2S, color = "P2")) +
+    labs(x = "time in 100 ms", y = "HR") +
+    theme(legend.position="bottom")
+  
+  # scaled RESP
+  c2 <- data %>%
+    filter(group == group_nr) %>%
+    ggplot() +
+    geom_line(aes(as.numeric(time.x), resp1S, color = "P1")) +
+    geom_line(aes(as.numeric(time.x), resp2S, color = "P2")) +
+    labs(x = "time in 100 ms", y = "RESP") +
+    theme(legend.position="bottom")
+  
+  # scaled ECG
+  c3 <- data %>% 
+    filter(group == group_nr) %>%
+    ggplot() +
+    geom_line(aes(as.numeric(time.x), ecg1S, color = "P1")) +
+    geom_line(aes(as.numeric(time.x), ecg2S, color = "P2")) +
+    labs(x = "time in 100 ms", y = "ECG") +
+    theme(legend.position="bottom")
+  
+  ## colected
+  grid.arrange(c1, c2, c3, ncol=3, top = "Plots of physiological data (HR, RESP, ECG) with downsampling, outlier removal & scaling", 
+               bottom = paste0("Group ", group_nr))
+  
+}
+
+plotty(d4_study2, group = "10")
+
+plotty(d4_study2, group = "9")
+```
+
