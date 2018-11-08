@@ -191,10 +191,10 @@ optimizeBitch <- function(df, group_nr) {
     filter(group == group_nr)
   
   ## split into 3 conditions
-  data_conv <- data %>%
+  data_synch <- data %>%
     filter(condition == "Synchronous")
   
-  data_synch <- data %>%
+  data_conv <- data %>%
     filter(condition == "Conversation")
   
   data_turn <- data %>%
@@ -218,18 +218,28 @@ optimizeBitch <- function(df, group_nr) {
   
   
   ## optimize
+  # synchronous
+  try(expr = (para_HR = optimizeParam(data$hr1S, data$hr2S, par, min.rec = 2, max.rec = 5)))
+  try(expr = (para_RESP = optimizeParam(data$resp1S, data$resp2S, par, min.rec = 2, max.rec = 5)))
+  try(expr = (para_ECG = optimizeParam(data$ecg1S, data$ecg1S, par, min.rec = 2, max.rec = 5)))
   
-  try(expr = (para_HR = optimizeParam(data_conv$hr1S, data_conv$hr2S, par, min.rec = 2, max.rec = 5)))
-  try(expr = (para_RESP = optimizeParam(data_conv$resp1S, data_conv$resp2S, par, min.rec = 2, max.rec = 5)))
-  try(expr = (para_ECG = optimizeParam(data_conv$ecg1S, data_conv$ecg1S, par, min.rec = 2, max.rec = 5)))
+  # conversation
+  try(expr = (para_HR = optimizeParam(data$hr1S, data$hr2S, par, min.rec = 2, max.rec = 5)))
+  try(expr = (para_RESP = optimizeParam(data$resp1S, data$resp2S, par, min.rec = 2, max.rec = 5)))
+  try(expr = (para_ECG = optimizeParam(data$ecg1S, data$ecg1S, par, min.rec = 2, max.rec = 5)))
+  
+  # turntaking
+  try(expr = (para_HR = optimizeParam(data$hr1S, data$hr2S, par, min.rec = 2, max.rec = 5)))
+  try(expr = (para_RESP = optimizeParam(data$resp1S, data$resp2S, par, min.rec = 2, max.rec = 5)))
+  try(expr = (para_ECG = optimizeParam(data$ecg1S, data$ecg1S, par, min.rec = 2, max.rec = 5)))
   
   
   ## data
   bind <- rbind.data.frame('para_HR' = para_HR,
                            'para_RESP' = para_RESP,
                            'para_ECG' = para_ECG) %>%
-    rownames_to_column() %>%
-    cbind.data.frame('group' = group_nr)
+    cbind.data.frame('group' = group_nr) %>%
+    rownames_to_column()
   
   
   ## return
