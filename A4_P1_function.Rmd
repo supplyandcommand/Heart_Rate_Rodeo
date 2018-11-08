@@ -182,15 +182,48 @@ plotty(d4, group_nr = "10")
 ```
 
 
-## 
-```{r}
+## setting up optimizeParam()
+```{r optimize setup}
+## set parameters
+par = list(lgM = 50, 
+           steps = seq(1, 6, 1), 
+           radiusspan = 100,
+           radiussample = 40, 
+           normalize = 0, 
+           rescale = 0, #slide code = 0
+           mindiagline = 2,
+           minvertline = 2, 
+           tw = 0, 
+           whiteline = FALSE, 
+           recpt = FALSE, 
+           fnnpercent = 10, 
+           typeami = "mindip")
+
+
+
+## version of optimizeParam that returnt an error message if something goes wrong
+# agruments: timeseries and parameters for optimizeParam() function
+
+non_picky_optimizeParam <- function(TS1, TS2, parameters) {
+  
+  return(
+    # try running the expression using specified arugments
+    tryCatch(expr = (optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5)),
+             # when error / warning occurs, it saves the message as character
+           error=function(e) as.character(e), warning=function(w) as.character(w))
+    )
+}
+
+
+
+## THE FUNCTION
 optimizeBitch <- function(df, group_nr) {
   
-  ## one group only
+  # one group only
   data <- df %>%
     filter(group == group_nr)
   
-  ## split into 3 conditions
+  # split into 3 conditions
   data_synch <- data %>%
     filter(condition == "Synchronous")
   
@@ -201,43 +234,30 @@ optimizeBitch <- function(df, group_nr) {
     filter(condition == "TurnTaking")
   
   
-  ## set parameters
-  par = list(lgM = 50, 
-             steps = seq(1, 6, 1), 
-             radiusspan = 100,
-             radiussample = 40, 
-             normalize = 0, 
-             rescale = 0, #slide code = 0
-             mindiagline = 2,
-             minvertline = 2, 
-             tw = 0, 
-             whiteline = FALSE, 
-             recpt = FALSE, 
-             fnnpercent = 10, 
-             typeami = "mindip")
-  
-  
   ## optimize
-  # synchronous
-  try(expr = (para_HR = optimizeParam(data$hr1S, data$hr2S, par, min.rec = 2, max.rec = 5)))
-  try(expr = (para_RESP = optimizeParam(data$resp1S, data$resp2S, par, min.rec = 2, max.rec = 5)))
-  try(expr = (para_ECG = optimizeParam(data$ecg1S, data$ecg1S, par, min.rec = 2, max.rec = 5)))
+  Synchronous_HR <- non_picky_optimizeParam(data_synch$hr1S, data_synch$hr2S, par)
+  Synchronous_RESP <- non_picky_optimizeParam(data_synch$resp1S, data_synch$resp2S, par)
+  Synchronous_ECG <- non_picky_optimizeParam(data_synch$ecg1S, data_synch$ecg2S, par)
   
-  # conversation
-  try(expr = (para_HR = optimizeParam(data$hr1S, data$hr2S, par, min.rec = 2, max.rec = 5)))
-  try(expr = (para_RESP = optimizeParam(data$resp1S, data$resp2S, par, min.rec = 2, max.rec = 5)))
-  try(expr = (para_ECG = optimizeParam(data$ecg1S, data$ecg1S, par, min.rec = 2, max.rec = 5)))
+  Conversation_HR <- non_picky_optimizeParam(data_conv$hr1S, data_conv$hr2S, par)
+  Conversation_RESP <- non_picky_optimizeParam(data_conv$resp1S, data_conv$resp2S, par)
+  Conversation_ECG <- non_picky_optimizeParam(data_conv$ecg1S, data_conv$ecg2S, par)
   
-  # turntaking
-  try(expr = (para_HR = optimizeParam(data$hr1S, data$hr2S, par, min.rec = 2, max.rec = 5)))
-  try(expr = (para_RESP = optimizeParam(data$resp1S, data$resp2S, par, min.rec = 2, max.rec = 5)))
-  try(expr = (para_ECG = optimizeParam(data$ecg1S, data$ecg1S, par, min.rec = 2, max.rec = 5)))
+  TurnTaking_HR <- non_picky_optimizeParam(data_turn$hr1S, data_turn$hr2S, par)
+  TurnTaking_RESP <- non_picky_optimizeParam(data_turn$resp1S, data_turn$resp2S, par)
+  TurnTaking_ECG <- non_picky_optimizeParam(data_turn$ecg1S, data_turn$ecg2S, par)
   
   
   ## data
-  bind <- rbind.data.frame('para_HR' = para_HR,
-                           'para_RESP' = para_RESP,
-                           'para_ECG' = para_ECG) %>%
+  bind <- rbind.data.frame(Synchronous_HR,
+                           Synchronous_RESP,
+                           Synchronous_ECG,
+                           Conversation_HR,
+                           Conversation_RESP,
+                           Conversation_ECG,
+                           TurnTaking_HR,
+                           TurnTaking_RESP,
+                           TurnTaking_ECG) %>%
     cbind.data.frame('group' = group_nr) %>%
     rownames_to_column()
   
@@ -246,8 +266,14 @@ optimizeBitch <- function(df, group_nr) {
   return(bind)
   
 }
+```
 
-a <- optimizeBitch(d4, "10")
+## running optimisation
+```{r optimize run}
+start = Sys.time()
+a2 <- optimizeBitch(d4, "10")
+stop = Sys.time()
 
+stop - start
 ```
 
