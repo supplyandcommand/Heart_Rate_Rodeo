@@ -56,6 +56,7 @@ read_heart <- function(filename) {
 }
 
 all <- map_df(files, read_heart) %>%
+  filter(study == "2") %>%
   mutate(t = factor(t),
          condition = factor(condition),
          ReadingStart = as.numeric(ReadingStart),
@@ -105,7 +106,7 @@ idiot1_idiot2_analysis <- function(data, threshold) {
   
   # do the job
   d3 <- d2 %>%
-    group_by(group) %>%
+    group_by(group, condition) %>%
     mutate(hr1  = removeOuts(HR1.x, threshold),
            hr2  = removeOuts(HR2.x, threshold),
            ecg1 = removeOuts(ECG1, threshold),
@@ -176,16 +177,28 @@ plotty <- function(data, group_nr){
                bottom = paste0("Group ", group_nr))
   
 }
+
+plotty(d4, group_nr = "10")
 ```
 
 
 ## 
 ```{r}
-optimizeBitch <- function(data, group_nr) {
+optimizeBitch <- function(df, group_nr) {
   
   ## one group only
-  data <- data %>%
+  data <- df %>%
     filter(group == group_nr)
+  
+  ## split into 3 conditions
+  data_conv <- data %>%
+    filter(condition == "Synchronous")
+  
+  data_synch <- data %>%
+    filter(condition == "Conversation")
+  
+  data_turn <- data %>%
+    filter(condition == "TurnTaking")
   
   
   ## set parameters
@@ -194,7 +207,7 @@ optimizeBitch <- function(data, group_nr) {
              radiusspan = 100,
              radiussample = 40, 
              normalize = 0, 
-             rescale = 1, #slide code = 0
+             rescale = 0, #slide code = 0
              mindiagline = 2,
              minvertline = 2, 
              tw = 0, 
@@ -205,20 +218,26 @@ optimizeBitch <- function(data, group_nr) {
   
   
   ## optimize
-  para_HR = optimizeParam(data$hr1S, data$hr2S, par, min.rec = 2, max.rec = 5)
-  para_RESP = optimizeParam(data$resp1S, data$resp2S, par, min.rec = 2, max.rec = 5)
-  para_ECG = optimizeParam(data$ecg1S, data$ecg1S, par, min.rec = 2, max.rec = 5)
+  
+  try(expr = (para_HR = optimizeParam(data_conv$hr1S, data_conv$hr2S, par, min.rec = 2, max.rec = 5)))
+  try(expr = (para_RESP = optimizeParam(data_conv$resp1S, data_conv$resp2S, par, min.rec = 2, max.rec = 5)))
+  try(expr = (para_ECG = optimizeParam(data_conv$ecg1S, data_conv$ecg1S, par, min.rec = 2, max.rec = 5)))
+  
+  
+  ## data
+  bind <- rbind.data.frame('para_HR' = para_HR,
+                           'para_RESP' = para_RESP,
+                           'para_ECG' = para_ECG) %>%
+    rownames_to_column() %>%
+    cbind.data.frame('group' = group_nr)
   
   
   ## return
-  return(cbind.data.frame('group' = group_nr,
-                          'para_HR' = para_HR,
-                          'para_RESP' = para_RESP,
-                          'para_ECG' = para_ECG))
+  return(bind)
   
 }
 
-a <- optimizeBitch(d4, "1")
+a <- optimizeBitch(d4, "10")
 
 ```
 
