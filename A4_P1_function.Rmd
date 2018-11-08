@@ -16,7 +16,7 @@ p_load(tidyverse,
 ```
 
 
-
+## data loado
 ```{r data loading}
 files <- list.files(path = "data/", pattern="*.csv", full.names = T)
 
@@ -67,6 +67,7 @@ all <- map_df(files, read_heart) %>%
 ```
 
 
+## data preprocesso
 ```{r preprocessing}
 idiot1_idiot2_analysis <- function(data, threshold) {
   
@@ -141,6 +142,7 @@ d4 <- idiot1_idiot2_analysis(all, threshold = 2.5)
 ```
 
 
+## data plotto
 ```{r plotting}
 plotty <- function(data, group_nr){
   c1 <- data %>%
@@ -174,9 +176,49 @@ plotty <- function(data, group_nr){
                bottom = paste0("Group ", group_nr))
   
 }
+```
 
-plotty(d4_study2, group = "10")
 
-plotty(d4_study2, group = "9")
+## 
+```{r}
+optimizeBitch <- function(data, group_nr) {
+  
+  ## one group only
+  data <- data %>%
+    filter(group == group_nr)
+  
+  
+  ## set parameters
+  par = list(lgM = 50, 
+             steps = seq(1, 6, 1), 
+             radiusspan = 100,
+             radiussample = 40, 
+             normalize = 0, 
+             rescale = 1, #slide code = 0
+             mindiagline = 2,
+             minvertline = 2, 
+             tw = 0, 
+             whiteline = FALSE, 
+             recpt = FALSE, 
+             fnnpercent = 10, 
+             typeami = "mindip")
+  
+  
+  ## optimize
+  para_HR = optimizeParam(data$hr1S, data$hr2S, par, min.rec = 2, max.rec = 5)
+  para_RESP = optimizeParam(data$resp1S, data$resp2S, par, min.rec = 2, max.rec = 5)
+  para_ECG = optimizeParam(data$ecg1S, data$ecg1S, par, min.rec = 2, max.rec = 5)
+  
+  
+  ## return
+  return(cbind.data.frame('group' = group_nr,
+                          'para_HR' = para_HR,
+                          'para_RESP' = para_RESP,
+                          'para_ECG' = para_ECG))
+  
+}
+
+a <- optimizeBitch(d4, "1")
+
 ```
 
