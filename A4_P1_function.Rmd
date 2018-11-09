@@ -217,7 +217,7 @@ non_picky_optimizeParam <- function(TS1, TS2, parameters) {
 
 
 ## THE FUNCTION
-optimizeAlot <- function(df, group_nr) {
+optimizeAlot <- function(df, group_nr, parameter_list) {
   
   # one group only
   data <- df %>%
@@ -235,17 +235,26 @@ optimizeAlot <- function(df, group_nr) {
   
   
   ## optimize
-  Synchronous_HR <- non_picky_optimizeParam(data_synch$hr1S, data_synch$hr2S, par)
-  Synchronous_RESP <- non_picky_optimizeParam(data_synch$resp1S, data_synch$resp2S, par)
-  Synchronous_ECG <- non_picky_optimizeParam(data_synch$ecg1S, data_synch$ecg2S, par)
+  Synchronous_HR <- non_picky_optimizeParam(data_synch$hr1S, data_synch$hr2S, 
+                                            parameters = parameter_list)
+  Synchronous_RESP <- non_picky_optimizeParam(data_synch$resp1S, data_synch$resp2S, 
+                                              parameters = parameter_list)
+  Synchronous_ECG <- non_picky_optimizeParam(data_synch$ecg1S, data_synch$ecg2S, 
+                                             parameters = parameter_list)
   
-  Conversation_HR <- non_picky_optimizeParam(data_conv$hr1S, data_conv$hr2S, par)
-  Conversation_RESP <- non_picky_optimizeParam(data_conv$resp1S, data_conv$resp2S, par)
-  Conversation_ECG <- non_picky_optimizeParam(data_conv$ecg1S, data_conv$ecg2S, par)
+  Conversation_HR <- non_picky_optimizeParam(data_conv$hr1S, data_conv$hr2S, 
+                                             parameters = parameter_list)
+  Conversation_RESP <- non_picky_optimizeParam(data_conv$resp1S, data_conv$resp2S, 
+                                               parameters = parameter_list)
+  Conversation_ECG <- non_picky_optimizeParam(data_conv$ecg1S, data_conv$ecg2S, 
+                                              parameters = parameter_list)
   
-  TurnTaking_HR <- non_picky_optimizeParam(data_turn$hr1S, data_turn$hr2S, par)
-  TurnTaking_RESP <- non_picky_optimizeParam(data_turn$resp1S, data_turn$resp2S, par)
-  TurnTaking_ECG <- non_picky_optimizeParam(data_turn$ecg1S, data_turn$ecg2S, par)
+  TurnTaking_HR <- non_picky_optimizeParam(data_turn$hr1S, data_turn$hr2S, 
+                                           parameters = parameter_list)
+  TurnTaking_RESP <- non_picky_optimizeParam(data_turn$resp1S, data_turn$resp2S,
+                                             parameters = parameter_list)
+  TurnTaking_ECG <- non_picky_optimizeParam(data_turn$ecg1S, data_turn$ecg2S,
+                                            parameters = parameter_list)
   
   
   ## data
@@ -270,14 +279,15 @@ optimizeAlot <- function(df, group_nr) {
 ```
 
 ## running optimisation
-watch out! Takes 7.2 minutes to run
+watch out! Takes almost 8 minutes to run
 ```{r optimize run}
 all_groups <- 5:10
 
 start = Sys.time()
 optimal_para <- map_df(all_groups, 
                        optimizeAlot, 
-                       df = d4)
+                       df = d4,
+                       parameter_list = par)
 stop = Sys.time()
 
 stop - start
