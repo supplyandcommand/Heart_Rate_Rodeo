@@ -297,7 +297,7 @@ stop - start
 
 ## median parameters
 ```{r}
-test <- optimal_para %>%
+med_optimal_para <- optimal_para %>%
   mutate(delay = as.numeric(delay),
          emddim = as.numeric(emddim),
          radius = as.numeric(radius)) %>%
