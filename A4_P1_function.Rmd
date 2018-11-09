@@ -278,3 +278,16 @@ stop = Sys.time()
 stop - start
 ```
 
+
+## scrambling time-series
+rearange in a random order
+```{r}
+
+```
+
+## surrogate paths / controls
+Malte will explain later
+```{r}
+
+```
+
