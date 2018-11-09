@@ -281,6 +281,7 @@ optimizeAlot <- function(df, group_nr, parameter_list) {
 ## running optimisation
 watch out! Takes almost 8 minutes to run
 ```{r optimize run}
+set.seed(666)
 all_groups <- 5:10
 
 start = Sys.time()
@@ -311,6 +312,7 @@ test <- optimal_para %>%
 
 ## CRQA
 ```{r}
+set.seed(666)
 test2 <- d4 %>%
   filter(condition == "Conversation") %>%
   filter(group == "8")
@@ -341,12 +343,22 @@ ggplot(Prof, aes(timecourse,profile))+geom_line()+ geom_vline(xintercept = timec
 ## scrambling time-series
 rearange in a random order
 ```{r}
-
+set.seed(666)
+d4_shuffle <- d4 %>% mutate(
+    hr1S = sample(hr1S),
+    hr2S = sample(hr2S),
+    resp1S = sample(resp1S),
+    resp2S = sample(resp2S),
+    ecg1S = sample(ecg1S),
+    ecg2S = sample(ecg2S)
+)
 ```
 
 ## surrogate paths / controls
 Malte will explain later
 ```{r}
-
+set.seed(666)
+expand <- expand.grid(person1s = seq(5,10,1), person2s = seq(5,10,1)) %>%
+  filter(person1s != person2s)
 ```
 
