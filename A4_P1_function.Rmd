@@ -297,9 +297,9 @@ stop - start
 ## median parameters
 ```{r}
 test <- optimal_para %>%
-  mutate(delay = ifelse(str_detect(delay, "[a-z]"), NA, delay),
-         emddim = ifelse(str_detect(emddim, "[a-z]"), NA, emddim),
-         radius = ifelse(str_detect(radius, "[a-z]"), NA, radius)) %>%
+  mutate(delay = as.numeric(delay),
+         emddim = as.numeric(emddim),
+         radius = as.numeric(radius)) %>%
   
   group_by(Metric, Condition) %>%
   
