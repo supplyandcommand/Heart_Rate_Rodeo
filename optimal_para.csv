@@ -1,0 +1,124 @@
+Condition,Metric,radius,emddim,delay,group
+Synchronous,HR,"simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+",5
+Synchronous,RESP,"simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+",5
+Synchronous,ECG,1.68739078850316,6,39,5
+Conversation,HR,"simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+",5
+Conversation,RESP,0.286392417187377,2,7,5
+Conversation,ECG,1.71027705231014,7,22,5
+TurnTaking,HR,"simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+",5
+TurnTaking,RESP,0.377168531365117,2,48,5
+TurnTaking,ECG,1.03707070238543,4,11,5
+Synchronous,HR,"simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+",6
+Synchronous,RESP,0.387718718465488,2,48,6
+Synchronous,ECG,1.70753145524396,6,11,6
+Conversation,HR,"simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+",6
+Conversation,RESP,0.346043835453716,2,40,6
+Conversation,ECG,0.129250369564369,8,0,6
+TurnTaking,HR,"simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+",6
+TurnTaking,RESP,0.376121096879372,2,33,6
+TurnTaking,ECG,0.329750113888585,2,42,6
+Synchronous,HR,"simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+",7
+Synchronous,RESP,"simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+",7
+Synchronous,ECG,1.142525730433,6,5,7
+Conversation,HR,"simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+",7
+Conversation,RESP,0.353328402602761,2,24,7
+Conversation,ECG,1.04368456100385,5,22,7
+TurnTaking,HR,"Error in mutual(ts1, lag.max = lgM, plot = FALSE): NA/NaN/Inf in foreign function call (arg 1)
+","Error in mutual(ts1, lag.max = lgM, plot = FALSE): NA/NaN/Inf in foreign function call (arg 1)
+","Error in mutual(ts1, lag.max = lgM, plot = FALSE): NA/NaN/Inf in foreign function call (arg 1)
+",7
+TurnTaking,RESP,"Error in mutual(ts1, lag.max = lgM, plot = FALSE): NA/NaN/Inf in foreign function call (arg 1)
+","Error in mutual(ts1, lag.max = lgM, plot = FALSE): NA/NaN/Inf in foreign function call (arg 1)
+","Error in mutual(ts1, lag.max = lgM, plot = FALSE): NA/NaN/Inf in foreign function call (arg 1)
+",7
+TurnTaking,ECG,"Error in mutual(ts1, lag.max = lgM, plot = FALSE): NA/NaN/Inf in foreign function call (arg 1)
+","Error in mutual(ts1, lag.max = lgM, plot = FALSE): NA/NaN/Inf in foreign function call (arg 1)
+","Error in mutual(ts1, lag.max = lgM, plot = FALSE): NA/NaN/Inf in foreign function call (arg 1)
+",7
+Synchronous,HR,1.6517279849185,11,21,8
+Synchronous,RESP,"simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+",8
+Synchronous,ECG,1.56554330670741,7,5,8
+Conversation,HR,1.99439578401829,10,49,8
+Conversation,RESP,"simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+",8
+Conversation,ECG,1.23366171883963,5,30,8
+TurnTaking,HR,2.10275833205314,11,47,8
+TurnTaking,RESP,0.381547018261432,2,43,8
+TurnTaking,ECG,1.45939295929376,6,48,8
+Synchronous,HR,"simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+",9
+Synchronous,RESP,0.351646129019195,2,47,9
+Synchronous,ECG,2.17742041130982,9,43,9
+Conversation,HR,"simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+",9
+Conversation,RESP,"simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+",9
+Conversation,ECG,1.88754931123758,7,22,9
+TurnTaking,HR,"simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+",9
+TurnTaking,RESP,0.384616662855238,2,36,9
+TurnTaking,ECG,0.952206557164745,4,43,9
+Synchronous,HR,"simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+",10
+Synchronous,RESP,2.65698509668511,15,9,10
+Synchronous,ECG,1.81015263756675,7,33,10
+Conversation,HR,"simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+",10
+Conversation,RESP,"simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+",10
+Conversation,ECG,1.70721408966845,7,15,10
+TurnTaking,HR,"simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+","simpleWarning in optimizeParam(TS1, TS2, parameters, min.rec = 2, max.rec = 5): Optimal Radius Not found: try again choosing a wider radius span and larger sample size
+",10
+TurnTaking,RESP,0.102299320720953,2,0,10
+TurnTaking,ECG,1.95784955956899,7,23,10
