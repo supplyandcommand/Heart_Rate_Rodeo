@@ -221,17 +221,17 @@ optimizeBitch <- function(df, group_nr) {
   
   # one group only
   data <- df %>%
-    filter(group == group_nr)
+    dplyr::filter(group == as.character(group_nr))
   
   # split into 3 conditions
   data_synch <- data %>%
-    filter(condition == "Synchronous")
+    dplyr::filter(condition == "Synchronous")
   
   data_conv <- data %>%
-    filter(condition == "Conversation")
+    dplyr::filter(condition == "Conversation")
   
   data_turn <- data %>%
-    filter(condition == "TurnTaking")
+    dplyr::filter(condition == "TurnTaking")
   
   
   ## optimize
@@ -270,9 +270,14 @@ optimizeBitch <- function(df, group_nr) {
 ```
 
 ## running optimisation
+watch out! Takes 7.2 minutes to run
 ```{r optimize run}
+all_groups <- 5:10
+
 start = Sys.time()
-a3 <- optimizeBitch(d4, "10")
+optimal_para <- map_df(all_groups, 
+                       optimizeBitch, 
+                       df = d4)
 stop = Sys.time()
 
 stop - start
