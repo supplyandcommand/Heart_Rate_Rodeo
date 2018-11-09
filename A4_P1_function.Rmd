@@ -294,6 +294,50 @@ stop - start
 ```
 
 
+## median parameters
+```{r}
+test <- optimal_para %>%
+  mutate(delay = ifelse(str_detect(delay, "[a-z]"), NA, delay),
+         emddim = ifelse(str_detect(emddim, "[a-z]"), NA, emddim),
+         radius = ifelse(str_detect(radius, "[a-z]"), NA, radius)) %>%
+  
+  group_by(Metric, Condition) %>%
+  
+  summarise(delay = median(delay, na.rm = T),
+            emddim = median(emddim, na.rm = T),
+            radius = median(radius, na.rm = T))
+```
+
+
+## CRQA
+```{r}
+test2 <- d4 %>%
+  filter(condition == "Conversation") %>%
+  filter(group == "8")
+
+results_test2 <- crqa(test$resp1S, test$resp2S, 
+              delay=39, embed=6, radius=1.68739078850316,
+              normalize=0,rescale=0,mindiagline =2,minvertline = 2)
+
+
+list_of_lists <- list(results_test, results_test2)
+```
+
+## later gator
+```{r}
+RP=results_test$RP
+RP = matrix(as.numeric(RP), nrow = ncol(RP))
+cols = c("white", "blue4")
+image(RP, xlab = "", ylab = "", col = cols)
+
+Profile=drpdfromts(test$resp1S, test$resp2S,datatype = 'continuous',ws=50,radius=1.68739078850316)
+timecourse = round( seq(-5000,5000,100)/1000, digit = 1)
+mindip = Profile$mindip/1000
+profile = Profile$profile*100
+Prof=data.frame(profile)
+ggplot(Prof, aes(timecourse,profile))+geom_line()+ geom_vline(xintercept = timecourse[mindip], colour='red')
+```
+
 ## scrambling time-series
 rearange in a random order
 ```{r}
