@@ -337,19 +337,40 @@ crqa_hell <- function(df, group_nr) {
                               mindiagline =2,
                               minvertline = 2))
     
+    # add radius to list
+    
     i = i + 1
   }
   
-  return(crqa_list)
+  # list into matrix
+  crqa_matrix <- do.call("rbind", crqa_list)
+  
+  # metrics, conditions, group nr
+  metrics_conditions <- as.matrix(med_optimal_para[,1:2])
+  group_nr_matrix <- as.matrix(rep(group_nr, times = 9))
+    
+  # merging
+  crqa_matrix_informative <- cbind(crqa_matrix, metrics_conditions)
+  crqa_matrix_informative_2 <- cbind(crqa_matrix_informative, group_nr_matrix)
+  
+  # return
+  return(crqa_matrix_informative_2)
 }
 ```
 
 ```{r crqa run}
 set.seed(666)
 
-optimal_para <- laplly(all_groups, 
+start = Sys.time()
+crqa_satan <- laplly(all_groups, 
                        crqa_hell, 
                        df = d4)
+
+crqa_df <- as.data.frame(crqa_satan[,-10])
+crqa_rp <- as.matrix(crqa_satan[,10:13])
+
+stop = Sys.time()
+stop - start
 ```
 
 
