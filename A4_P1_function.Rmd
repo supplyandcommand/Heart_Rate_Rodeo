@@ -12,7 +12,12 @@ library(pacman)
 p_load(tidyverse,
        gridExtra, #grid.arrange()
        crqa, #crqa()
+       doParallel, #parallel processing
        groupdata2) #downsampling
+
+# parallel processing
+cl <- makeCluster(detectCores(), type='PSOCK')
+registerDoParallel(cl)
 ```
 
 
@@ -282,7 +287,7 @@ optimizeAlot <- function(df, group_nr, parameter_list) {
 watch out! Takes almost 8 minutes to run
 ```{r optimize run}
 set.seed(666)
-all_groups <- 5:10
+all_groups <- c(1, 2, 4:10)
 
 start = Sys.time()
 optimal_para <- map_df(all_groups, 
@@ -311,33 +316,40 @@ med_optimal_para <- optimal_para %>%
 
 
 ## CRQA
-```{r}
-# parallel processing
-cl <- makeCluster(detectCores(), type='PSOCK')
-registerDoParallel(cl)
+```{r crqa function}
+# CRQA LOOP
+crqa_hell <- function(df, group_nr) {
+  
+  data <- df %>%
+    dplyr::filter(group == as.character(group_nr))
+  
+  crqa_list = c()
+  
+  for (i in 1:9) {
+    
+    crqa_list[i] <- list(crqa(ts1 = data$resp1S, 
+                              ts2 = data$resp2S, 
+                              delay = as.numeric(med_optimal_para[i, 3]), #delay 
+                              embed = as.numeric(med_optimal_para[i, 4]), #emdim 
+                              radius = as.numeric(med_optimal_para[i, 5]), #radius
+                              normalize=0,
+                              rescale=0,
+                              mindiagline =2,
+                              minvertline = 2))
+    
+    i = i + 1
+  }
+  
+  return(crqa_list)
+}
+```
 
-# seed
+```{r crqa run}
 set.seed(666)
 
-# CRQA LOOP
-crqa_list = c()
-system.time( for (i in 1:9) {
-  
-  crqa_list[i] <- list(crqa(ts1 = test$resp1S, 
-                  ts2 = test$resp2S, 
-                  delay = as.numeric(med_optimal_para[i, 3]), #delay 
-                  embed = as.numeric(med_optimal_para[i, 4]), #emdim 
-                  radius = as.numeric(med_optimal_para[i, 5]), #radius
-                  normalize=0,
-                  rescale=0,
-                  mindiagline =2,
-                  minvertline = 2))
-
-  i = i + 1
-} )
-
-# back to sequential processing
-registerDoSEQ()
+optimal_para <- laplly(all_groups, 
+                       crqa_hell, 
+                       df = d4)
 ```
 
 
