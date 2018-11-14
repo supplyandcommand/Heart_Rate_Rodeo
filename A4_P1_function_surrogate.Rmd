@@ -12,22 +12,17 @@ library(pacman)
 p_load(tidyverse,
        gridExtra, #grid.arrange()
        crqa, #crqa()
-       doParallel, #parallel processing
        groupdata2) #downsampling
-
-# parallel processing
-cl <- makeCluster(detectCores(), type='PSOCK')
-registerDoParallel(cl)
 ```
 
 
 ## data loado
 ```{r data loading}
-files <- list.files(path = "data/", pattern="*.csv", full.names = T)
+files <- list.files(path = "CleanData2018/", pattern="*.csv", full.names = T)
 
 read_heart <- function(filename) {
     raw <- read_csv(filename,
-                    col_types = list(time = col_double(),
+                    col_types = list(TimeMs = col_double(),
                                      Resp1 = col_double(),
                                      Resp2 = col_double(),
                                      ECG1 = col_double(),
@@ -43,16 +38,16 @@ read_heart <- function(filename) {
       #summarise()
     
     data <- data %>%
-      mutate(name = str_remove_all(name, "data/"),
+      mutate(name = str_remove_all(name, "CleanData2018/"),
          name = str_remove_all(name, ".csv")) %>%
       
-      mutate(study = substr(name, 6, 6),
-         group = substr(name, 9, 10),
+      mutate(study = substr(name, 7, 7),
+         group = substr(name, 10, 11),
          group = str_remove_all(group, "_"),
-         t = substr(name, 12, 13),
+         t = substr(name, 13, 14),
          t = str_remove_all(t, "_"),
          t = str_remove_all(t, "T"),
-         condition = substr(name, 14, 30),
+         condition = substr(name, 15, 31),
          condition = str_remove_all(condition, "_")) %>%
       
       select(-name)
@@ -83,7 +78,7 @@ idiot1_idiot2_analysis <- function(data, threshold) {
   d1 <- data %>%
     group(n = 100, method = 'greedy') %>%
     dplyr::summarise(
-      time = mean(time,na.rm=T),
+      time = mean(TimeMs,na.rm=T),
       HR1 = mean(HR1,na.rm=T),
       HR2 = mean(HR2,na.rm=T),
       Resp1 = mean(Resp1,na.rm=T),
@@ -145,7 +140,6 @@ idiot1_idiot2_analysis <- function(data, threshold) {
 }
 
 d4 <- idiot1_idiot2_analysis(all, threshold = 2.5)
-rm(all)
 ```
 
 
@@ -155,8 +149,8 @@ plotty <- function(data, group_nr){
   c1 <- data %>%
     filter(group == group_nr) %>%
     ggplot() +
-    geom_line(aes(as.numeric(time.x), hr1S, color = "P1")) +
-    geom_line(aes(as.numeric(time.x), hr2S, color = "P2")) +
+    geom_line(aes(as.numeric(time), hr1S, color = "P1")) +
+    geom_line(aes(as.numeric(time), hr2S, color = "P2")) +
     labs(x = "time in 100 ms", y = "HR") +
     theme(legend.position="bottom")
   
@@ -164,8 +158,8 @@ plotty <- function(data, group_nr){
   c2 <- data %>%
     filter(group == group_nr) %>%
     ggplot() +
-    geom_line(aes(as.numeric(time.x), resp1S, color = "P1")) +
-    geom_line(aes(as.numeric(time.x), resp2S, color = "P2")) +
+    geom_line(aes(as.numeric(time), resp1S, color = "P1")) +
+    geom_line(aes(as.numeric(time), resp2S, color = "P2")) +
     labs(x = "time in 100 ms", y = "RESP") +
     theme(legend.position="bottom")
   
@@ -173,8 +167,8 @@ plotty <- function(data, group_nr){
   c3 <- data %>% 
     filter(group == group_nr) %>%
     ggplot() +
-    geom_line(aes(as.numeric(time.x), ecg1S, color = "P1")) +
-    geom_line(aes(as.numeric(time.x), ecg2S, color = "P2")) +
+    geom_line(aes(as.numeric(time), ecg1S, color = "P1")) +
+    geom_line(aes(as.numeric(time), ecg2S, color = "P2")) +
     labs(x = "time in 100 ms", y = "ECG") +
     theme(legend.position="bottom")
   
@@ -184,7 +178,7 @@ plotty <- function(data, group_nr){
   
 }
 
-plotty(d4, group_nr = "10")
+plotty(d4, group_nr = "1")
 ```
 
 
@@ -219,7 +213,6 @@ non_picky_optimizeParam <- function(TS1, TS2, parameters) {
            error=function(e) as.character(e), warning=function(w) as.character(w))
     )
 }
-
 
 
 ## THE FUNCTION
@@ -288,7 +281,7 @@ optimizeAlot <- function(df, group_nr, parameter_list) {
 watch out! Takes almost 8 minutes to run
 ```{r optimize run}
 set.seed(666)
-all_groups <- c(1, 2, 4:10)
+all_groups <- 6:9
 
 start = Sys.time()
 optimal_para <- map_df(all_groups, 
@@ -317,63 +310,19 @@ med_optimal_para <- optimal_para %>%
 
 
 ## CRQA
-```{r crqa function}
-# CRQA LOOP
-crqa_hell <- function(df, group_nr) {
-  
-  data <- df %>%
-    dplyr::filter(group == as.character(group_nr))
-  
-  crqa_list = c()
-  
-  for (i in 1:9) {
-    
-    crqa_list[i] <- list(crqa(ts1 = data$resp1S, 
-                              ts2 = data$resp2S, 
-                              delay = as.numeric(med_optimal_para[i, 3]), #delay 
-                              embed = as.numeric(med_optimal_para[i, 4]), #emdim 
-                              radius = as.numeric(med_optimal_para[i, 5]), #radius
-                              normalize=0,
-                              rescale=0,
-                              mindiagline =2,
-                              minvertline = 2))
-    
-    # add radius to list
-    
-    i = i + 1
-  }
-  
-  # list into matrix
-  crqa_matrix <- do.call("rbind", crqa_list)
-  
-  # metrics, conditions, group nr
-  metrics_conditions <- as.matrix(med_optimal_para[,1:2])
-  group_nr_matrix <- as.matrix(rep(group_nr, times = 9))
-    
-  # merging
-  crqa_matrix_informative <- cbind(crqa_matrix, metrics_conditions)
-  crqa_matrix_informative_2 <- cbind(crqa_matrix_informative, group_nr_matrix)
-  
-  # return
-  return(crqa_matrix_informative_2)
-}
-```
-
-```{r crqa run}
+```{r}
 set.seed(666)
+test2 <- d4 %>%
+  filter(condition == "Conversation") %>%
+  filter(group == "8")
 
-start = Sys.time()
-crqa_satan <- lapply(all_groups, 
-                       crqa_hell, 
-                       df = d4)
+results_test2 <- crqa(test$resp1S, test$resp2S, 
+              delay=39, embed=6, radius=1.68739078850316,
+              normalize=0,rescale=0,mindiagline =2,minvertline = 2)
 
-crqa_df <- as.data.frame(crqa_satan[,-10])
-crqa_rp <- as.matrix(crqa_satan[,10:13])
 
-stop = Sys.time()
-stop - start
+list_of_lists <- list(results_test, results_test2)
 ```
-
 
 ## later gator
 ```{r}
@@ -404,7 +353,6 @@ d4_shuffle <- d4 %>% mutate(
 )
 ```
 
-
 ## surrogate paths / controls
 Malte will explain later
 ```{r}
@@ -412,9 +360,6 @@ set.seed(666)
 expand <- expand.grid(person1s = seq(5,10,1), person2s = seq(5,10,1)) %>%
   filter(person1s != person2s)
 ```
-
-
-## Anders monday
 
 ```{r}
 surrogate_list = c()
@@ -435,3 +380,4 @@ for (i in 1:30) {
 
 surrogate_df <- do.call("rbind", surrogate_list)
 ```
+
