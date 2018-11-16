@@ -24,7 +24,7 @@ registerDoParallel(cl)
 
 ## data loado
 ```{r data loading}
-files <- list.files(path = "data/", pattern="*.csv", full.names = T)
+files <- list.files(path = "data/", pattern="Study3", full.names = T)
 
 read_heart <- function(filename) {
     raw <- read_csv(filename,
@@ -371,6 +371,9 @@ make_crqa_RP <- function(input) {
 
 ```
 
+
+# running the CRQA functions
+takes like an hour to run!!
 ```{r crqa run}
 set.seed(666)
 start = Sys.time()
