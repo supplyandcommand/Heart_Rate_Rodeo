@@ -21,19 +21,24 @@ crqa_hr_rp <- readRDS("matrix/crqa_hr_rp.rds")
 ```
 
 models
+condition = condition 
+reality_status = real study, surrogate, shuffled (1, 2, 3).
+
 
 ```{r cars}
 
+#just some amazing models 
+slim_shady <- names(crqa_ecg_df)[1:9] %>%
+  paste0(., " ~ condition * reality_status + (1|Group)")
 
+#calling those amazing models
+slim_shady
 
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
 
 ```{r pressure, echo=FALSE}
-plot(pressure)
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
