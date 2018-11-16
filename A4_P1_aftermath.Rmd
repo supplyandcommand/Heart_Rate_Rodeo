@@ -1,0 +1,39 @@
+---
+title: "ugly"
+author: "Victor Møller"
+date: "16 nov 2018"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+
+crqa_ecg_df <- read.csv("matrix/crqa_ecg_df.csv")
+crqa_hr_df <- read.csv("matrix/crqa_hr_df.csv")
+crqa_resp_df <- read.csv("matrix/crqa_resp_df.csv")
+
+#the rds files 
+
+crqa_resp_rp <- readRDS("matrix/crqa_resp_rp.rds")
+crqa_ecg_rp <- readRDS("matrix/crqa_ecg_rp.rds")
+crqa_hr_rp <- readRDS("matrix/crqa_hr_rp.rds")
+  
+```
+
+models
+
+```{r cars}
+
+
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
