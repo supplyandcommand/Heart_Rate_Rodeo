@@ -346,8 +346,8 @@ crqa_hell_RESP <- function(df, group_nr) {
   crqa_matrix <- do.call("rbind", crqa_list)
   
   # metrics, conditions, group nr
-  metrics_conditions <- as.matrix(med_optimal_para[,1:2])
-  group_nr_matrix <- as.matrix(rep(group_nr, times = 9))
+  metrics_conditions <- as.matrix(med_optimal_para[1:3,1:2])
+  group_nr_matrix <- as.matrix(rep(group_nr, times = 3))
   
   # merging
   crqa_matrix_informative <- cbind(crqa_matrix, metrics_conditions)
@@ -383,8 +383,8 @@ crqa_hell_HR <- function(df, group_nr) {
   crqa_matrix <- do.call("rbind", crqa_list)
   
   # metrics, conditions, group nr
-  metrics_conditions <- as.matrix(med_optimal_para[,1:2])
-  group_nr_matrix <- as.matrix(rep(group_nr, times = 9))
+  metrics_conditions <- as.matrix(med_optimal_para[1:3,1:2])
+  group_nr_matrix <- as.matrix(rep(group_nr, times = 3))
   
   # merging
   crqa_matrix_informative <- cbind(crqa_matrix, metrics_conditions)
@@ -420,8 +420,8 @@ crqa_hell_ECG <- function(df, group_nr) {
   crqa_matrix <- do.call("rbind", crqa_list)
   
   # metrics, conditions, group nr
-  metrics_conditions <- as.matrix(med_optimal_para[,1:2])
-  group_nr_matrix <- as.matrix(rep(group_nr, times = 9))
+  metrics_conditions <- as.matrix(med_optimal_para[1:3,1:2])
+  group_nr_matrix <- as.matrix(rep(group_nr, times = 3))
   
   # merging
   crqa_matrix_informative <- cbind(crqa_matrix, metrics_conditions)
