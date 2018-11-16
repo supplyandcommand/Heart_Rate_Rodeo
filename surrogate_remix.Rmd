@@ -1,0 +1,64 @@
+---
+title: "A4_P1_surrogate"
+author: "Victor Møller"
+date: "16 nov 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+#group 10 --> group 3 
+
+library(reshape2)
+d4 <- d4 %>%
+  mutate(group2 = ifelse(group == 10, 3, group))
+
+library(tidyverse)
+
+#Subset for melting 
+
+d5 <- d4 %>%
+  ungroup() %>%
+  select(resp1S, resp2S, group2)
+
+d6 <- melt(d5, id.vars = "group2")
+
+#Adding a unique column 
+
+library(tidyr)
+d6 <- d6 %>%
+  mutate(greatness = paste(group2, variable))
+
+d6$greatness <- as.numeric(as.factor(d6$greatness))
+
+#almost works                        
+unite("unique", c("group2", "variable"))
+
+#Making the pairs 
+
+set.seed(666)
+expand <- expand.grid(persons1 = seq(1,18,1), persons2 = seq(1,18,1)) %>%
+  filter(persons1 < persons2)
+  
+
+expand
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
