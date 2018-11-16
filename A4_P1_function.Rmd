@@ -327,6 +327,7 @@ crqa_hell <- function(df, group_nr, var1, var2) {
   
   crqa_list = c()
   
+  # ISSURE HERE: WE PROBABLY DON'T NEED TO LOOP THIS!
   for (i in 1:9) {
     
     crqa_list[i] <- list(crqa(ts1 = data[[var1]], 
@@ -417,8 +418,8 @@ stop - start
 
 # fix column type
 # write_csv(crqa_df, "crqa_df.csv")
-crqa_df <- read_csv("crqa_df.csv") %>%
-  rename(Group = V12)
+#crqa_df <- read_csv("crqa_df.csv") %>%
+#  rename(Group = V12)
 ```
 
 
