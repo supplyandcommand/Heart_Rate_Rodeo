@@ -156,8 +156,8 @@ plotty <- function(data, group_nr){
   c1 <- data %>%
     filter(group == group_nr) %>%
     ggplot() +
-    geom_line(aes(as.numeric(time.x), hr1S, color = "P1")) +
-    geom_line(aes(as.numeric(time.x), hr2S, color = "P2")) +
+    geom_line(aes(as.numeric(TimeMs), hr1S, color = "P1")) +
+    geom_line(aes(as.numeric(TimeMs), hr2S, color = "P2")) +
     labs(x = "time in 100 ms", y = "HR") +
     theme(legend.position="bottom")
   
@@ -165,8 +165,8 @@ plotty <- function(data, group_nr){
   c2 <- data %>%
     filter(group == group_nr) %>%
     ggplot() +
-    geom_line(aes(as.numeric(time.x), resp1S, color = "P1")) +
-    geom_line(aes(as.numeric(time.x), resp2S, color = "P2")) +
+    geom_line(aes(as.numeric(TimeMs), resp1S, color = "P1")) +
+    geom_line(aes(as.numeric(TimeMs), resp2S, color = "P2")) +
     labs(x = "time in 100 ms", y = "RESP") +
     theme(legend.position="bottom")
   
@@ -174,8 +174,8 @@ plotty <- function(data, group_nr){
   c3 <- data %>% 
     filter(group == group_nr) %>%
     ggplot() +
-    geom_line(aes(as.numeric(time.x), ecg1S, color = "P1")) +
-    geom_line(aes(as.numeric(time.x), ecg2S, color = "P2")) +
+    geom_line(aes(as.numeric(TimeMs), ecg1S, color = "P1")) +
+    geom_line(aes(as.numeric(TimeMs), ecg2S, color = "P2")) +
     labs(x = "time in 100 ms", y = "ECG") +
     theme(legend.position="bottom")
   
@@ -356,6 +356,25 @@ crqa_hell <- function(df, group_nr, var1, var2) {
   # return
   return(crqa_matrix_informative_2)
 }
+
+make_crqa_DF <- function(input) {
+  
+  crqa_big_matrix <- do.call("rbind", input)
+  
+  crqa_df <- as.data.frame(crqa_big_matrix[,-10])
+  crqa_df <- as.data.frame(sapply(crqa_df, unlist), stringsAsFactors = F) 
+  
+  return(crqa_df)
+}
+
+make_crqa_RP <- function(input) {
+  
+  crqa_big_matrix <- do.call("rbind", input)
+  crqa_rp <- as.matrix(crqa_big_matrix[,10:13])
+  
+  return(crqa_rp)
+}
+
 ```
 
 ```{r crqa run}
@@ -366,8 +385,8 @@ start = Sys.time()
 crqa_resp <- lapply(all_groups, 
                        crqa_hell, 
                        df = d4,
-                    var1 = resp1S,
-                    var2 = resp2S)
+                    var1 = "resp1S",
+                    var2 = "resp2S")
 
 crqa_hr <- lapply(all_groups, 
                        crqa_hell, 
@@ -382,12 +401,13 @@ crqa_ecg <- lapply(all_groups,
                    var2 = "ecg2S")
 
 # wrangling
-crqa_big_matrix <- do.call("rbind", crqa_satan)
+crqa_resp_df <- make_crqa_DF(crqa_resp)
+crqa_hr_df <- make_crqa_DF(crqa_hr)
+crqa_ecg_df <- make_crqa_DF(crqa_ecg)
 
-crqa_df <- as.data.frame(crqa_big_matrix[,-10])
-crqa_df <- as.data.frame(sapply(crqa_df, unlist), stringsAsFactors = F)  
-  
-crqa_rp <- as.matrix(crqa_big_matrix[,10:13])
+crqa_resp_rp <- make_crqa_RP(crqa_resp)
+crqa_hr_rp <- make_crqa_RP(crqa_hr)
+crqa_ecg_rp <- make_crqa_RP(crqa_ecg)
 
 
 # benchmark
