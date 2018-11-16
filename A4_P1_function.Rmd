@@ -12,6 +12,7 @@ library(pacman)
 p_load(tidyverse,
        gridExtra, #grid.arrange()
        crqa, #crqa()
+       lmerTest,
        doParallel, #parallel processing
        groupdata2) #downsampling
 
@@ -319,7 +320,7 @@ med_optimal_para <- optimal_para %>%
 ## CRQA
 ```{r crqa function}
 # CRQA LOOP
-crqa_hell <- function(df, group_nr) {
+crqa_hell <- function(df, group_nr, var1, var2) {
   
   data <- df %>%
     dplyr::filter(group == as.character(group_nr))
@@ -328,8 +329,8 @@ crqa_hell <- function(df, group_nr) {
   
   for (i in 1:9) {
     
-    crqa_list[i] <- list(crqa(ts1 = data$resp1S, 
-                              ts2 = data$resp2S, 
+    crqa_list[i] <- list(crqa(ts1 = data[[var1]], 
+                              ts2 = data[[var2]], 
                               delay = as.numeric(med_optimal_para[i, 3]), #delay 
                               embed = as.numeric(med_optimal_para[i, 4]), #emdim 
                               radius = as.numeric(med_optimal_para[i, 5]), #radius
@@ -337,8 +338,6 @@ crqa_hell <- function(df, group_nr) {
                               rescale=0,
                               mindiagline =2,
                               minvertline = 2))
-    
-    # add radius to list
     
     i = i + 1
   }
@@ -361,17 +360,45 @@ crqa_hell <- function(df, group_nr) {
 
 ```{r crqa run}
 set.seed(666)
-
 start = Sys.time()
-crqa_satan <- lapply(all_groups, 
+
+# loop trough all groups
+crqa_resp <- lapply(all_groups, 
                        crqa_hell, 
-                       df = d4)
+                       df = d4,
+                    var1 = resp1S,
+                    var2 = resp2S)
 
-crqa_df <- as.data.frame(crqa_satan[,-10])
-crqa_rp <- as.matrix(crqa_satan[,10:13])
+crqa_hr <- lapply(all_groups, 
+                       crqa_hell, 
+                       df = d4,
+                  var1 = "hr1S",
+                  var2 = "hr2S")
 
+crqa_ecg <- lapply(all_groups, 
+                       crqa_hell, 
+                       df = d4,
+                   var1 = "ecg1S",
+                   var2 = "ecg2S")
+
+# wrangling
+crqa_big_matrix <- do.call("rbind", crqa_satan)
+
+crqa_df <- as.data.frame(crqa_big_matrix[,-10])
+crqa_df <- as.data.frame(sapply(crqa_df, unlist), stringsAsFactors = F)  
+  
+crqa_rp <- as.matrix(crqa_big_matrix[,10:13])
+
+
+# benchmark
 stop = Sys.time()
 stop - start
+
+
+# fix column type
+# write_csv(crqa_df, "crqa_df.csv")
+crqa_df <- read_csv("crqa_df.csv") %>%
+  rename(Group = V12)
 ```
 
 
@@ -435,3 +462,143 @@ for (i in 1:30) {
 
 surrogate_df <- do.call("rbind", surrogate_list)
 ```
+
+
+# MODELING
+to include: RR
+```{r scaling}
+# new df not to overwrite
+crqa_scaled <- crqa_df
+
+# MINMAX
+for (i in c(1:9)) {
+  minc = min(crqa_scaled[,i])
+  maxc = max(crqa_scaled[,i])
+  crqa_scaled[,i] = (crqa_scaled[,i]-minc)/(maxc-minc)
+}
+
+# keep it clean
+rm(i, maxc, minc)
+```
+
+```{r first modeling}
+m1 <- lmer(RR ~ . + (1|Group), data = crqa_scaled)
+```
+
+
+
+## cross-validation?
+
+```{r cross-validation preparation}
+set.seed(1337)
+# adds a new column with fold number
+crqa_scaled <- fold(crqa_scaled, k = 5, 
+             cat_col = 'diagnosis', #balances ratio between shizo/control
+             id_col = 'ID') #keeps same people in same folds
+
+crossvalidation_nation <- function(data, k, model_name, dependent, pos, neg) {
+  # Initialize empty list for recording performances
+  performances_SEN <- c()
+  performances_SPE <- c()
+  performances_PPV <- c()
+  performances_NPV <- c()
+  performances_AUC <- c()
+  performances_ACC <- c()
+
+  
+    # One iteration per fold
+  for (fold in 1:k){   #from 1 to k
+    
+    # Create training set for this iteration
+    # Subset all the datapoints where .folds does not match the current fold
+    training_set <- data[data$.folds != fold,]
+    
+    # Create test set for this iteration
+    # Subset all the datapoints where .folds matches the current fold
+    testing_set <- data[data$.folds == fold,]
+    
+    ## Train model
+
+    # If there is a random effect,
+    # use lmer() to train model
+    # else use lm()
+
+    model <- glmer(model_name, training_set, family = "binomial")
+    
+
+    ## Test model
+
+    # Predict the dependent variable in the testing_set with the trained model
+    predicted <- inv.logit(predict(model, testing_set, allow.new.levels=TRUE))
+    
+    # Make predicted into factors
+    predicted[predicted < 0.5] = "0"
+    predicted[predicted >= 0.5] = "1"
+    predicted <- factor(predicted)
+    
+    # Get model performance metrics between the predicted and the observed
+    SEN <- caret::sensitivity(predicted, testing_set[[dependent]], positive = pos)
+    
+    SPE <- caret::specificity(predicted, testing_set[[dependent]], negative = neg)
+    
+    PPV <- posPredValue(predicted, testing_set[[dependent]], positive = pos)
+    
+    NPV <- negPredValue(predicted, testing_set[[dependent]], negative = neg)
+    
+    predicted <- as.numeric(predicted)
+    rocCurve <- roc(response = testing_set$diagnosis, predictor = predicted)
+    AUC <- pROC::auc(rocCurve)
+    
+    testing_set$predicted <- predicted
+    testing_correct <- filter(testing_set, diagnosis == predicted)
+    ACC <- nrow(testing_correct) / nrow(testing_set)
+    
+    # Add the to the performance list
+    performances_SEN[fold] <- SEN
+    performances_SPE[fold] <- SPE
+    performances_PPV[fold] <- PPV
+    performances_NPV[fold] <- NPV
+    performances_AUC[fold] <- AUC
+    performances_ACC[fold] <- ACC
+
+  }
+
+  # Return the mean of the recorded RMSEs
+  return(cbind.data.frame('model' = model_name,
+           'SEN' = mean(performances_SEN, na.rm = T),
+           'SPE' = mean(performances_SPE, na.rm = T),
+           'PPV' = mean(performances_PPV, na.rm = T),
+           'NPV' = mean(performances_NPV, na.rm = T),
+           'AUC' = mean(performances_AUC, na.rm = T),
+           'ACC' = mean(performances_ACC, na.rm = T)))
+
+}
+```
+
+```{r cross run}
+m1 <- "diagnosis ~ range + Gender + (1|uniqueness) + (1|study)"
+m2 <- "diagnosis ~ sd + Gender + (1|uniqueness) + (1|study)"
+m3 <- "diagnosis ~ mean + Gender + (1|uniqueness) + (1|study)"
+m4 <- "diagnosis ~ median + Gender + (1|uniqueness) + (1|study)"
+m5 <- "diagnosis ~ iqr + Gender + (1|uniqueness) + (1|study)"
+m6 <- "diagnosis ~ mean_abs + Gender + (1|uniqueness) + (1|study)"
+m7 <- "diagnosis ~ coef_var + Gender + (1|uniqueness) + (1|study)"
+
+model_list <- list(m1, m2, m3, m4, m5, m6, m7)
+
+#
+
+set.seed(1337)
+cross_table <- map_df(
+            #list to loop trough
+            model_list,
+            #function to use
+            crossvalidation_nation,
+            # arguments
+            data = Bear_scaled, 
+            k = 5,
+            dependent = "diagnosis", 
+            pos = "1", 
+            neg = "0")
+```
+
