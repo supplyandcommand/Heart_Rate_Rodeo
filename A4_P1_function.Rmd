@@ -210,30 +210,34 @@ non_picky_optimizeParam <- function(TS1, TS2, parameters) {
 
 
 ## THE FUNCTION
-optimizeAlot <- function(df, group_nr, parameter_list) {
+optimizeAlot_discount <- function(df, group_nr, parameter_list) {
   
   # one group only
   data <- df %>%
     dplyr::filter(group == as.character(group_nr))
+  
+  metric <- c("HR", "RESP")
   
   ## optimize
   
   HR <- non_picky_optimizeParam(data$hr1S, data$hr2S, parameters = parameter_list)
   
   RESP <- non_picky_optimizeParam(data$resp1S, data$resp2S, parameters = parameter_list)
-
   
-  ## data
-  bind <- rbind.data.frame("Synchronous_HR" = HR,
-                           "Synchronous_RESP" = RESP,
-                           "Conversation_HR" = HR,
-                           "Conversation_RESP" = RESP,
-                           "TurnTaking_HR" = HR,
-                           "TurnTaking_RESP" = RESP) %>%
-    cbind.data.frame('group' = group_nr) %>%
-    rownames_to_column() %>%
-    separate(rowname, c("Condition", "Metric"), "_")
   
+  if (is.character(HR) & is.character(RESP)) {
+    bind <- data.frame("radius" = c(NA, NA),
+                       "delay" = c(NA, NA),
+                       "emddim" = c(NA, NA)) %>%
+      cbind.data.frame('group' = group_nr) %>%
+      cbind.data.frame("metric" = metric)
+  } 
+  
+  else {
+    bind <- rbind.data.frame(HR, RESP) %>%
+      cbind.data.frame('group' = group_nr) %>%
+      cbind.data.frame("metric" = metric)
+  }
   
   ## return
   return(bind)
@@ -244,18 +248,13 @@ optimizeAlot <- function(df, group_nr, parameter_list) {
 ## running optimisation
 watch out! Takes almost 8 minutes to run
 ```{r optimize run}
-#set.seed(666)
+set.seed(666)
 all_groups <- c(1, 2, 4:10)
 
-start = Sys.time()
-optimal_para <- map_df(all_groups, 
-                       optimizeAlot, 
+system.time({optimal_para <- map_df(all_groups, 
+                       optimizeAlot_discount, 
                        df = d4,
-                       parameter_list = par)
-stop = Sys.time()
-
-stop - start
-
+                       parameter_list = par)})
 
 ```
 
@@ -267,7 +266,7 @@ med_optimal_para <- optimal_para %>%
          emddim = as.numeric(emddim),
          radius = as.numeric(radius)) %>%
   
-  group_by(Metric, Condition) %>%
+  #group_by(Metric, Condition) %>%
   
   summarise(delay = median(delay, na.rm = T),
             emddim = median(emddim, na.rm = T),
