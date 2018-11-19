@@ -353,24 +353,10 @@ crqa_hr <- map_df(GROUP,
 
 
 ```{r}
+new_jam <- list.files(path = "matrix/", pattern="crqa", full.names = T)
 
-crqa_ecg_df <- read.csv("matrix/crqa_ecg_df.csv")
-crqa_hr_df <- read.csv("matrix/crqa_hr_df.csv")
-crqa_resp_df <- read.csv("matrix/crqa_resp_df.csv")
-
-#the rds files 
-
-crqa_resp_rp <- readRDS("matrix/crqa_resp_rp.rds")
-
+crqa_real_df <- map_df(new_jam, read_csv)
 ```
-
-plotty 
-
-```{r}
-head(crqa_ecg_df)
-
-```
-
 
 
 ## later gator
