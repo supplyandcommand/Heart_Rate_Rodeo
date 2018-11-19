@@ -288,115 +288,66 @@ med_optimal_para <- optimal_para %>%
 ## CRQA
 ```{r crqa function}
 # CRQA LOOP
-## HR
-crqa_1 <- function(df, group_nr, cond, var1, var2, del, emb, rad) {
+crqa_real <- function(df, group_nr_cond, var1, var2, del, emb, rad) {
   
+  # filtering argument
+  filtering_args <- data.frame(whack = group_nr_cond) %>%
+    separate(whack, c("cond", "group_nr"), sep = "_")
+  
+  cond <- filtering_args$cond
+  group_nr <- filtering_args$group_nr
+  
+  # filtering
   data <- df %>%
-    dplyr::filter(group == as.character(group_nr)) %>%
-    dplyr::filter(condition == cond)
+    dplyr::filter(condition == as.character(cond)) %>%
+    dplyr::filter(group ==as.numeric(group_nr))
+    
   
   # computing
-  crqa_list <- list(crqa(ts1 = data[["hr1S"]], 
-                            ts2 = data[["hr2S"]], 
+  crqa_list <- list(crqa(ts1 = data[[as.character(var1)]], 
+                            ts2 = data[[as.character(var2)]], 
                             delay = del, #delay 
                             embed = emb, #emdim 
                             radius = rad, #radius
-                            normalize=0,
-                            rescale=0,
+                            normalize = 0,
+                            rescale = 0,
                             mindiagline = 2,
                             minvertline = 2))
   
-  # list into matrix
-  #crqa_matrix <- do.call("rbind", crqa_list)
+  # unlist
+  crqa_unlist <- unlist(crqa_list)
+  crqa_unlist$metric <- var1
+  crqa_unlist$group <- group_nr
+  crqa_unlist$condition <- cond
+  crqa_unlist$radius <- rad
   
-  # metrics, conditions, group nr
-  #metrics_conditions <- as.matrix(med_optimal_para[1,1])
-  #group_nr_matrix <- as.matrix(group_nr)
-    
-  # merging
-  #crqa_matrix_informative <- cbind(crqa_matrix, metrics_conditions)
-  #crqa_matrix_informative_2 <- cbind(crqa_matrix_informative, group_nr_matrix)
-  
+  # remove tyrant
+  crqa_unlist$RP <- NULL
+
   # return
-  return(crqa_list)
-}
-
-## RESP
-crqa_RESP <- function(df, group_nr) {
-  
-  data <- df %>%
-    dplyr::filter(group == as.character(group_nr))
-  
-  # computing
-  crqa_list <- list(crqa(ts1 = data[["resp1S"]], 
-                            ts2 = data[["resp2S"]], 
-                            delay = as.numeric(med_optimal_para[2, 2]), #delay 
-                            embed = as.numeric(med_optimal_para[2, 3]), #emdim 
-                            radius = as.numeric(med_optimal_para[2, 4]), #radius
-                            normalize=0,
-                            rescale=0,
-                            mindiagline = 2,
-                            minvertline = 2))
-  
-  # list into matrix
-  crqa_matrix <- do.call("rbind", crqa_list)
-  
-  # metrics, conditions, group nr
-  metrics_conditions <- as.matrix(med_optimal_para[2,1])
-  group_nr_matrix <- as.matrix(group_nr)
-    
-  # merging
-  crqa_matrix_informative <- cbind(crqa_matrix, metrics_conditions)
-  crqa_matrix_informative_2 <- cbind(crqa_matrix_informative, group_nr_matrix)
-  
-  # return
-  return(crqa_matrix_informative_2)
-}
-
-
-# GET INFO OUT
-make_crqa_DF <- function(input) {
-  
-  crqa_big_matrix <- do.call("rbind", input)
-  
-  crqa_df <- as.data.frame(crqa_big_matrix[,-10])
-  crqa_df <- as.data.frame(sapply(crqa_df, unlist), stringsAsFactors = F) 
-  
+  crqa_df <- data.frame(crqa_unlist)
   return(crqa_df)
 }
 
-make_crqa_RP <- function(input) {
-  
-  crqa_big_matrix <- do.call("rbind", input)
-  crqa_rp <- as.matrix(crqa_big_matrix[,10:13])
-  
-  return(crqa_rp)
-}
 
 ```
 
 ```{r crqa run}
 set.seed(666)
-start = Sys.time()
+group_sync <- paste0("Synchronous_", c(1, 2, 4:9))
+group_conv <- paste0("Conversation_", c(1, 2, 4:9))
+group_turn <- paste0("TurnTaking_", c(1, 2, 4:9))
 
 # loop trough all groups
-crqa_hr <- lapply(all_groups, 
-                       crqa_HR, 
-                       df = d4)
+crqa_hr <- map_df(GROUP,
+                  crqa_real, 
+                  df = d4,
+                  var1 = "",
+                  var2 = "",
+                  del = ,
+                  emb = ,
+                  rad = )
 
-crqa_resp <- lapply(all_groups, 
-                       crqa_RESP, 
-                       df = d4)
-
-
-
-
-# wrangling
-crqa_resp_df <- make_crqa_DF(crqa_resp)
-crqa_hr_df <- make_crqa_DF(crqa_hr)
-
-crqa_resp_rp <- make_crqa_RP(crqa_resp)
-crqa_hr_rp <- make_crqa_RP(crqa_hr)
 ```
 
 
