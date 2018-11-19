@@ -210,13 +210,11 @@ non_picky_optimizeParam <- function(TS1, TS2, parameters) {
 
 
 ## THE FUNCTION
-optimizeAlot_discount <- function(df, group_nr, parameter_list) {
+optimizeAlot_tidy <- function(df, group_nr, parameter_list) {
   
   # one group only
   data <- df %>%
     dplyr::filter(group == as.character(group_nr))
-  
-  metric <- c("HR", "RESP")
   
   ## optimize
   
@@ -224,20 +222,31 @@ optimizeAlot_discount <- function(df, group_nr, parameter_list) {
   
   RESP <- non_picky_optimizeParam(data$resp1S, data$resp2S, parameters = parameter_list)
   
+  ## initialize dataframe
   
-  if (is.character(HR) & is.character(RESP)) {
-    bind <- data.frame("radius" = c(NA, NA),
-                       "delay" = c(NA, NA),
-                       "emddim" = c(NA, NA)) %>%
-      cbind.data.frame('group' = group_nr) %>%
-      cbind.data.frame("metric" = metric)
-  } 
+  bind_empty <- data_frame(radius=character(),
+                           delay=character(), 
+                           emddim=character(), 
+                           group=character(),
+                           metric=character()) 
   
-  else {
-    bind <- rbind.data.frame(HR, RESP) %>%
-      cbind.data.frame('group' = group_nr) %>%
-      cbind.data.frame("metric" = metric)
-  }
+  ## bind that
+  
+  bind_HR <- bind_empty %>%
+    add_row(radius = as.character(ifelse(is_character(HR), HR[[1]], HR[["radius"]])),
+           delay = as.character(ifelse(is_character(HR), HR[[1]], HR[["delay"]])),
+           emddim = as.character(ifelse(is_character(HR), HR[[1]], HR[["emddim"]])),
+           group = as.character(group_nr),
+           metric = as.character("HR"))
+  
+  bind_RESP <- bind_empty %>%
+    add_row(radius = as.character(ifelse(is_character(RESP), RESP[[1]], RESP[["radius"]])),
+           delay = as.character(ifelse(is_character(RESP), RESP[[1]], RESP[["delay"]])),
+           emddim = as.character(ifelse(is_character(RESP), RESP[[1]], RESP[["emddim"]])),
+           group = as.character(group_nr),
+           metric = as.character("RESP"))
+  
+  bind <- full_join(bind_HR, bind_RESP)
   
   ## return
   return(bind)
@@ -251,10 +260,14 @@ watch out! Takes almost 8 minutes to run
 set.seed(666)
 all_groups <- c(1, 2, 4:10)
 
-system.time({optimal_para <- map_df(all_groups, 
-                       optimizeAlot_discount, 
+system.time(optimal_para <- map_df(all_groups, 
+                       optimizeAlot_tidy, 
                        df = d4,
-                       parameter_list = par)})
+                       parameter_list = par))
+
+
+
+write_csv(optimal_para, "optimal_para.csv")
 
 ```
 
@@ -266,7 +279,7 @@ med_optimal_para <- optimal_para %>%
          emddim = as.numeric(emddim),
          radius = as.numeric(radius)) %>%
   
-  #group_by(Metric, Condition) %>%
+  group_by(metric) %>%
   
   summarise(delay = median(delay, na.rm = T),
             emddim = median(emddim, na.rm = T),
@@ -277,14 +290,47 @@ med_optimal_para <- optimal_para %>%
 ## CRQA
 ```{r crqa function}
 # CRQA LOOP
-crqa_hell <- function(df, group_nr, var1, var2) {
+## HR
+crqa_HR <- function(df, group_nr) {
   
   data <- df %>%
     dplyr::filter(group == as.character(group_nr))
   
   # computing
-  crqa_list <- list(crqa(ts1 = data[[var1]], 
-                            ts2 = data[[var2]], 
+  crqa_list <- list(crqa(ts1 = data[["hr1S"]], 
+                            ts2 = data[["hr2S"]], 
+                            delay = as.numeric(med_optimal_para[i, 3]), #delay 
+                            embed = as.numeric(med_optimal_para[i, 4]), #emdim 
+                            radius = as.numeric(med_optimal_para[i, 5]), #radius
+                            normalize=0,
+                            rescale=0,
+                            mindiagline = 2,
+                            minvertline = 2))
+  
+  # list into matrix
+  crqa_matrix <- do.call("rbind", crqa_list)
+  
+  # metrics, conditions, group nr
+  metrics_conditions <- as.matrix(med_optimal_para[,1:2])
+  group_nr_matrix <- as.matrix(rep(group_nr, times = 9))
+    
+  # merging
+  crqa_matrix_informative <- cbind(crqa_matrix, metrics_conditions)
+  crqa_matrix_informative_2 <- cbind(crqa_matrix_informative, group_nr_matrix)
+  
+  # return
+  return(crqa_matrix_informative_2)
+}
+
+## RESP
+crqa_RESP <- function(df, group_nr, var1, var2) {
+  
+  data <- df %>%
+    dplyr::filter(group == as.character(group_nr))
+  
+  # computing
+  crqa_list <- list(crqa(ts1 = data[["resp1S"]], 
+                            ts2 = data[["resp2S"]], 
                             delay = as.numeric(med_optimal_para[i, 3]), #delay 
                             embed = as.numeric(med_optimal_para[i, 4]), #emdim 
                             radius = as.numeric(med_optimal_para[i, 5]), #radius
@@ -308,6 +354,8 @@ crqa_hell <- function(df, group_nr, var1, var2) {
   return(crqa_matrix_informative_2)
 }
 
+
+# GET INFO OUT
 make_crqa_DF <- function(input) {
   
   crqa_big_matrix <- do.call("rbind", input)
@@ -345,20 +393,13 @@ crqa_hr <- lapply(all_groups,
                   var1 = "hr1S",
                   var2 = "hr2S")
 
-crqa_ecg <- lapply(all_groups, 
-                       crqa_hell, 
-                       df = d4,
-                   var1 = "ecg1S",
-                   var2 = "ecg2S")
 
 # wrangling
 crqa_resp_df <- make_crqa_DF(crqa_resp)
 crqa_hr_df <- make_crqa_DF(crqa_hr)
-crqa_ecg_df <- make_crqa_DF(crqa_ecg)
 
 crqa_resp_rp <- make_crqa_RP(crqa_resp)
 crqa_hr_rp <- make_crqa_RP(crqa_hr)
-crqa_ecg_rp <- make_crqa_RP(crqa_ecg)
 
 
 # benchmark
