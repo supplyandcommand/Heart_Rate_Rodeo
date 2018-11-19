@@ -332,7 +332,9 @@ crqa_real <- function(df, group_nr_cond, var1, var2, del, emb, rad) {
 
 ```
 
-```{r crqa run}
+
+# real
+```{r crqa real}
 set.seed(666)
 group_sync <- paste0("Synchronous_", c(1, 2, 4:9))
 group_conv <- paste0("Conversation_", c(1, 2, 4:9))
@@ -350,13 +352,101 @@ crqa_hr <- map_df(GROUP,
 
 ```
 
-
-
 ```{r}
 new_jam <- list.files(path = "matrix/", pattern="crqa", full.names = T)
 
 crqa_real_df <- map_df(new_jam, read_csv)
 ```
+
+
+## shuffle
+```{r}
+set.seed(666)
+d4_shuffle <- d4 %>% 
+  mutate(
+    hr1S = sample(hr1S),
+    hr2S = sample(hr2S),
+    resp1S = sample(resp1S),
+    resp2S = sample(resp2S))
+
+```
+
+```{r crqa shuffled}
+set.seed(666)
+group_sync <- paste0("Synchronous_", c(1, 2, 4:9))
+group_conv <- paste0("Conversation_", c(1, 2, 4:9))
+group_turn <- paste0("TurnTaking_", c(1, 2, 4:9))
+
+# loop trough all groups
+shuff_sync_RESP <- map_df(group_sync,
+                  crqa_real, 
+                  df = d4_shuffle,
+                  var1 = "resp1S",
+                  var2 = "resp2S",
+                  del = 22.5,
+                  emb = 2,
+                  rad = 0.4078281)
+
+shuff_conv_RESP <- map_df(group_conv,
+                  crqa_real, 
+                  df = d4_shuffle,
+                  var1 = "resp1S",
+                  var2 = "resp2S",
+                  del = 22.5,
+                  emb = 2,
+                  rad = 0.4078281)
+
+shuff_turn_RESP <- map_df(group_turn,
+                  crqa_real, 
+                  df = d4_shuffle,
+                  var1 = "resp1S",
+                  var2 = "resp2S",
+                  del = 22.5,
+                  emb = 2,
+                  rad = 0.4078281)
+
+###
+
+shuff_sync_HR <- map_df(group_sync,
+                  crqa_real, 
+                  df = d4_shuffle,
+                  var1 = "hr1S",
+                  var2 = "hr2S",
+                  del = 10,
+                  emb = 16,
+                  rad = 1.4586380)
+
+shuff_conv_HR <- map_df(group_conv,
+                  crqa_real, 
+                  df = d4_shuffle,
+                  var1 = "hr1S",
+                  var2 = "hr2S",
+                  del = 10,
+                  emb = 16,
+                  rad = 1.4586380)
+
+shuff_turn_HR <- map_df(group_turn,
+                  crqa_real, 
+                  df = d4_shuffle,
+                  var1 = "hr1S",
+                  var2 = "hr2S",
+                  del = 10,
+                  emb = 16,
+                  rad = 1.4586380)
+```
+
+```{r crqa shuffle}
+Pattern_shuff <- grep("shuff_",names(.GlobalEnv),value=TRUE)
+
+crqa_shuff <- list(shuff_conv_HR,
+                   shuff_conv_RESP,
+                   shuff_sync_HR,
+                   shuff_sync_RESP, 
+                   shuff_turn_HR,
+                   shuff_turn_RESP) %>% reduce(full_join)
+```
+
+
 
 
 ## later gator
@@ -376,19 +466,7 @@ ggplot(Prof, aes(timecourse,profile))+geom_line()+ geom_vline(xintercept = timec
 
 ## scrambling time-series
 rearange in a random order
-```{r}
 
-set.seed(666)
-d4_shuffle <- d4 %>% mutate(
-    hr1S = sample(hr1S),
-    hr2S = sample(hr2S),
-    resp1S = sample(resp1S),
-    resp2S = sample(resp2S),
-    ecg1S = sample(ecg1S),
-    ecg2S = sample(ecg2S)
-)
-
-```
 
 
 ## surrogate paths / controls
