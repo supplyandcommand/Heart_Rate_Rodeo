@@ -14,6 +14,7 @@ p_load(tidyverse,
        crqa, #crqa()
        lmerTest,
        doParallel, #parallel processing
+       reshape2,
        groupdata2) #downsampling
 
 # parallel processing
@@ -25,12 +26,25 @@ registerDoParallel(cl)
 # preprocessed data
 d4 <- read_csv("d4.csv")
 
+
 # optimal parameters
 med_optimal_para <- read_csv("med_optimal_para.csv")
 
+
 # crqa datasets
-crqa_real_df <- read_csv("crqa_real_df.csv")
-crqa_shuff <- read_csv("crqa_shuff.csv")
+crqa_real_df <- read_csv("crqa_real_df.csv") %>%
+  mutate(reality_status = "real")
+
+crqa_shuff <- read_csv("crqa_shuff.csv") %>%
+  mutate(reality_status = "shuffled")
+
+#crqa_surr <- read_csv("crqa_surr.csv") %>%
+#  mutate(reality_status = "surrogate")
+
+
+# merging
+crqa_results <- full_join(crqa_real_df, crqa_shuff) #%>%
+  #full_join(crqa_surr)
 ```
 
 
@@ -348,9 +362,9 @@ crqa_real <- function(df, group_nr_cond, var1, var2, del, emb, rad) {
 # real
 ```{r crqa real}
 set.seed(666)
-group_sync <- paste0("Synchronous_", c(1, 2, 4:9))
-group_conv <- paste0("Conversation_", c(1, 2, 4:9))
-group_turn <- paste0("TurnTaking_", c(1, 2, 4:9))
+group_sync <- paste0("Synchronous_", c(1, 2, 4:10))
+group_conv <- paste0("Conversation_", c(1, 2, 4:10))
+group_turn <- paste0("TurnTaking_", c(1, 2, 4:10))
 
 # loop trough all groups
 crqa_hr <- map_df(GROUP,
@@ -385,9 +399,9 @@ d4_shuffle <- d4 %>%
 
 ```{r crqa shuffled}
 set.seed(666)
-group_sync <- paste0("Synchronous_", c(1, 2, 4:9))
-group_conv <- paste0("Conversation_", c(1, 2, 4:9))
-group_turn <- paste0("TurnTaking_", c(1, 2, 4:9))
+group_sync <- paste0("Synchronous_", c(1, 2, 4:10))
+group_conv <- paste0("Conversation_", c(1, 2, 4:10))
+group_turn <- paste0("TurnTaking_", c(1, 2, 4:10))
 
 # loop trough all groups
 shuff_sync_RESP <- map_df(group_sync,
@@ -474,50 +488,6 @@ mindip = Profile$mindip/1000
 profile = Profile$profile*100
 Prof=data.frame(profile)
 ggplot(Prof, aes(timecourse,profile))+geom_line()+ geom_vline(xintercept = timecourse[mindip], colour='red')
-```
-
-## scrambling time-series
-rearange in a random order
-
-
-
-## surrogate paths / controls
-Malte will explain later
-```{r}
-set.seed(666)
-expand <- expand.grid(person1s = seq(5,10,1), person2s = seq(5,10,1)) %>%
-  filter(person1s != person2s)
-```
-
-```{r}
-d4 %>% group_by(group, condition) %>% tally()
-d4_10_conv[2401, ]$condition
-d4 <- filter(d4, ecg2S != d4_10_conv[2401, ]$ecg2S)
-```
-
-
-```{r}
-surrogate_list = c()
-for (i in 1:30) {
-    
-    surrogate_list[i] <- list(d4 %>% filter(group == expand[i,1]))
-    surrogate_list[[i]] <- surrogate_list[[i]][order(surrogate_list[[i]]$condition),]
-
-    part_2 <- d4 %>% filter(group == expand[i,2])
-    part_2 <- part_2[order(part_2$condition), ]
-    
-    surrogate_list[[i]] = surrogate_list[[i]][1:7200, ]
- 
-    surrogate_list[[i]]$hr2S = part_2$hr2S[1:7200]
-    surrogate_list[[i]]$resp2S = part_2$resp2S[1:7200]
-    surrogate_list[[i]]$ecg2S = part_2$ecg2S[1:7200]
-    
-    surrogate_list[[i]]$group = i
-
-    i = i + 1
-}
-
-surrogate_df <- do.call("rbind", surrogate_list)
 ```
 
 

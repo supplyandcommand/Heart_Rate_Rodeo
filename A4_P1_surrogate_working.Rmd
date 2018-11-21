@@ -15,7 +15,9 @@ But, we can work on that later perhaps.
 
 ```{r}
 d5 <- d4 %>%
-  mutate(group2 = ifelse(group == 10, 2, group)) #This works because 2 comes after (just like 10 does. So, it works by accident - which is good enough for now.)
+  plyr::mutate(group2 = ifelse(group == 10, 3, group)) #This works because 2 comes after (just like 10 does. So, it works by accident - which is good enough for now.)
+
+# WATCH OUT, MY WORKS WITH 3, SOME WORK WITH 2
 
 d5$group2 <- as.factor(d5$group2)
 
@@ -51,7 +53,6 @@ d10 <- cbind(d7, d9)
 d10 <- d10[,-4] #getting rid of one of the group2 columns. 
 
 #Adding a unique column 
-library(tidyr)
 d11 <- d10 %>%
   mutate(greatness = paste(group2, resp))
 
@@ -111,15 +112,16 @@ surrogate_func_c <- function(data) {
     # save into a df
     df$p1[n] <- unique(p1$greatness)
     df$p2[n] <- unique(p2$greatness)
-    df$RR_resp[n] <- results$RR
-    df$DET_resp[n] <- results$DET
-    df$NRLINE_resp[n] <- results$NRLINE
-    df$maxL_resp[n] <- results$maxL
-    df$L_resp[n] <- results$L
-    df$ENTR_resp[n] <- results$ENTR
-    df$rENTR_resp[n] <- results$rENTR
-    df$LAM_resp[n] <- results$LAM
-    df$TT_resp[n] <- results$TT
+    df$RR[n] <- results$RR
+    df$DET[n] <- results$DET
+    df$NRLINE[n] <- results$NRLINE
+    df$maxL[n] <- results$maxL
+    df$L[n] <- results$L
+    df$ENTR[n] <- results$ENTR
+    df$rENTR[n] <- results$rENTR
+    df$LAM[n] <- results$LAM
+    df$TT[n] <- results$TT
+    df$metric <- "resp1S"
     
     n = n+1
   }
