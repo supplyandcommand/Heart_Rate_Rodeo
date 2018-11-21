@@ -91,21 +91,23 @@ The actual function
 ```{r cars}
 n = 1
 # conversation
-surrogate_func_c <- function(data) {
+surrogate_RESP <- function(data, condition_name) {
   
   #create an empty df
   df <- data.frame()
-  df <- setNames(data.frame(matrix(ncol=11, nrow=153)),c('p1','p2',"RR_resp","DET_resp","NRLINE_resp","maxL_resp","L_resp","ENTR_resp", "rENTR_resp", "LAM_resp", "TT_resp"))
+  df <- setNames(data.frame(matrix(ncol=12, nrow=153)),c('p1','p2',"RR","DET","NRLINE","maxL","L","ENTR", "rENTR", "LAM", "TT", "metric"))
+  
+  
   
   for (n in 1:153) {
     # participants
-    p1 <- dplyr::filter(data, greatness == expand[n,1] , condition == "Conversation") 
-    p2 <- dplyr::filter(data, greatness == expand[n,2] , condition == "Conversation")
+    p1 <- dplyr::filter(data, data$greatness == expand[n,1] , data$condition == condition_name) 
+    p2 <- dplyr::filter(data, data$greatness == expand[n,2] , data$condition == condition_name)
     
     #vectors 
-    v1 <- p1$resp_value
-    v2 <- p2$resp_value
-      
+    v1 <- p1[["resp_value"]]
+    v2 <- p2[["resp_value"]]
+    
     #run crqa
     results <- crqa(v1, v2, embed = 2, delay = 25.5, radius = 0.408, normalize = 0,  rescale = 0,  mindiagline = 2,  minvertline = 2,  tw = 0,  whiteline = FALSE,  recpt = FALSE)
     
@@ -122,13 +124,70 @@ surrogate_func_c <- function(data) {
     df$LAM[n] <- results$LAM
     df$TT[n] <- results$TT
     df$metric <- "resp1S"
+    df$condition <- condition_name
+    df$radius <- 0.408
     
     n = n+1
   }
   return(df)    
-  }
+}
 
-fuckme <- surrogate_func_c(d14)
+
+###
+surrogate_HR <- function(data, condition_name) {
+  
+  #create an empty df
+  df <- data.frame()
+  df <- setNames(data.frame(matrix(ncol=12, nrow=153)),c('p1','p2',"RR","DET","NRLINE","maxL","L","ENTR", "rENTR", "LAM", "TT", "metric"))
+  
+  
+  
+  for (n in 1:153) {
+    # participants
+    p1 <- dplyr::filter(data, data$greatness == expand[n,1] , data$condition == condition_name) 
+    p2 <- dplyr::filter(data, data$greatness == expand[n,2] , data$condition == condition_name)
+    
+    #vectors 
+    v1 <- p1[["hr_value"]]
+    v2 <- p2[["hr_value"]]
+    
+    #run crqa
+    results <- crqa(v1, v2, embed = 16, delay = 10, radius = 1.459, normalize = 0,  rescale = 0,  mindiagline = 2,  minvertline = 2,  tw = 0,  whiteline = FALSE,  recpt = FALSE)
+    
+    # save into a df
+    df$p1[n] <- unique(p1$greatness)
+    df$p2[n] <- unique(p2$greatness)
+    df$RR[n] <- results$RR
+    df$DET[n] <- results$DET
+    df$NRLINE[n] <- results$NRLINE
+    df$maxL[n] <- results$maxL
+    df$L[n] <- results$L
+    df$ENTR[n] <- results$ENTR
+    df$rENTR[n] <- results$rENTR
+    df$LAM[n] <- results$LAM
+    df$TT[n] <- results$TT
+    df$metric <- "hr1S"
+    df$condition <- condition_name
+    df$radius <- 1.459
+      
+      n = n+1
+  }
+  return(df)    
+}
+
+```
+
+```{r}
+condition_list <- names(table(d14$condition))
+
+n = 1
+surr_HR_df <- map_df(condition_list,
+                     surrogate_HR,
+                     data = d4)
+n = 1
+surr_RESP_df <- map_df(condition_list,
+                       surrogate_RESP,
+                       data = d4)
 ```
 
 And fuckme is the beautiful end product of a messy process. 
