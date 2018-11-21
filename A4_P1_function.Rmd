@@ -38,13 +38,13 @@ crqa_real_df <- read_csv("crqa_real_df.csv") %>%
 crqa_shuff <- read_csv("crqa_shuff.csv") %>%
   mutate(reality_status = "shuffled")
 
-#crqa_surr <- read_csv("crqa_surr.csv") %>%
-#  mutate(reality_status = "surrogate")
+crqa_surr <- read_csv("crqa_surr.csv") %>%
+  mutate(reality_status = "surrogate")
 
 
 # merging
-crqa_results <- full_join(crqa_real_df, crqa_shuff) #%>%
-  #full_join(crqa_surr)
+crqa_results <- full_join(crqa_real_df, crqa_shuff) %>%
+  full_join(crqa_surr)
 ```
 
 

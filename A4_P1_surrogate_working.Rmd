@@ -101,8 +101,10 @@ surrogate_RESP <- function(data, condition_name) {
   
   for (n in 1:153) {
     # participants
-    p1 <- dplyr::filter(data, data$greatness == expand[n,1] , data$condition == condition_name) 
-    p2 <- dplyr::filter(data, data$greatness == expand[n,2] , data$condition == condition_name)
+    p1 <- dplyr::filter(data, data$greatness == expand[n,1], 
+                        data$condition == as.character(condition_name))
+    p2 <- dplyr::filter(data, data$greatness == expand[n,2], 
+                        data$condition == as.character(condition_name))
     
     #vectors 
     v1 <- p1[["resp_value"]]
@@ -144,8 +146,10 @@ surrogate_HR <- function(data, condition_name) {
   
   for (n in 1:153) {
     # participants
-    p1 <- dplyr::filter(data, data$greatness == expand[n,1] , data$condition == condition_name) 
-    p2 <- dplyr::filter(data, data$greatness == expand[n,2] , data$condition == condition_name)
+    p1 <- dplyr::filter(data, data$greatness == expand[n,1], 
+                        data$condition == as.character(condition_name))
+    p2 <- dplyr::filter(data, data$greatness == expand[n,2], 
+                        data$condition == as.character(condition_name))
     
     #vectors 
     v1 <- p1[["hr_value"]]
@@ -178,17 +182,23 @@ surrogate_HR <- function(data, condition_name) {
 ```
 
 ```{r}
+set.seed(666)
 condition_list <- names(table(d14$condition))
 
 n = 1
 surr_HR_df <- map_df(condition_list,
                      surrogate_HR,
-                     data = d4)
+                     data = d14)
 n = 1
 surr_RESP_df <- map_df(condition_list,
                        surrogate_RESP,
-                       data = d4)
+                       data = d14)
 ```
+
+```{r}
+surr_r <- full_join(surr_HR_df, surr_RESP_df)
+```
+
 
 And fuckme is the beautiful end product of a messy process. 
 Note: we still have to run functions for the other 2 conditions, but we should probably 
