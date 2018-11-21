@@ -21,6 +21,18 @@ cl <- makeCluster(detectCores(), type='PSOCK')
 registerDoParallel(cl)
 ```
 
+```{r loading finished stuff}
+# preprocessed data
+d4 <- read_csv("d4.csv")
+
+# optimal parameters
+med_optimal_para <- read_csv("med_optimal_para.csv")
+
+# crqa datasets
+crqa_real_df <- read_csv("crqa_real_df.csv")
+crqa_shuff <- read_csv("crqa_shuff.csv")
+```
+
 
 ## data loado
 ```{r data loading}
@@ -210,7 +222,7 @@ non_picky_optimizeParam <- function(TS1, TS2, parameters) {
 
 
 ## THE FUNCTION
-optimizeAlot <- function(df, group_nr, parameter_list) {
+optimizeAlot_tidy <- function(df, group_nr, parameter_list) {
   
   # one group only
   data <- df %>%
@@ -221,19 +233,32 @@ optimizeAlot <- function(df, group_nr, parameter_list) {
   HR <- non_picky_optimizeParam(data$hr1S, data$hr2S, parameters = parameter_list)
   
   RESP <- non_picky_optimizeParam(data$resp1S, data$resp2S, parameters = parameter_list)
-
   
-  ## data
-  bind <- rbind.data.frame("Synchronous_HR" = HR,
-                           "Synchronous_RESP" = RESP,
-                           "Conversation_HR" = HR,
-                           "Conversation_RESP" = RESP,
-                           "TurnTaking_HR" = HR,
-                           "TurnTaking_RESP" = RESP) %>%
-    cbind.data.frame('group' = group_nr) %>%
-    rownames_to_column() %>%
-    separate(rowname, c("Condition", "Metric"), "_")
+  ## initialize dataframe
   
+  bind_empty <- data_frame(radius=character(),
+                           delay=character(), 
+                           emddim=character(), 
+                           group=character(),
+                           metric=character()) 
+  
+  ## bind that
+  
+  bind_HR <- bind_empty %>%
+    add_row(radius = as.character(ifelse(is_character(HR), HR[[1]], HR[["radius"]])),
+           delay = as.character(ifelse(is_character(HR), HR[[1]], HR[["delay"]])),
+           emddim = as.character(ifelse(is_character(HR), HR[[1]], HR[["emddim"]])),
+           group = as.character(group_nr),
+           metric = as.character("HR"))
+  
+  bind_RESP <- bind_empty %>%
+    add_row(radius = as.character(ifelse(is_character(RESP), RESP[[1]], RESP[["radius"]])),
+           delay = as.character(ifelse(is_character(RESP), RESP[[1]], RESP[["delay"]])),
+           emddim = as.character(ifelse(is_character(RESP), RESP[[1]], RESP[["emddim"]])),
+           group = as.character(group_nr),
+           metric = as.character("RESP"))
+  
+  bind <- full_join(bind_HR, bind_RESP)
   
   ## return
   return(bind)
@@ -244,18 +269,15 @@ optimizeAlot <- function(df, group_nr, parameter_list) {
 ## running optimisation
 watch out! Takes almost 8 minutes to run
 ```{r optimize run}
-#set.seed(666)
+set.seed(666)
 all_groups <- c(1, 2, 4:10)
 
-start = Sys.time()
-optimal_para <- map_df(all_groups, 
-                       optimizeAlot, 
+system.time(optimal_para <- map_df(all_groups, 
+                       optimizeAlot_tidy, 
                        df = d4,
-                       parameter_list = par)
-stop = Sys.time()
+                       parameter_list = par))
 
-stop - start
-
+write_csv(optimal_para, "optimal_para.csv")
 
 ```
 
@@ -267,7 +289,7 @@ med_optimal_para <- optimal_para %>%
          emddim = as.numeric(emddim),
          radius = as.numeric(radius)) %>%
   
-  group_by(Metric, Condition) %>%
+  group_by(metric) %>%
   
   summarise(delay = median(delay, na.rm = T),
             emddim = median(emddim, na.rm = T),
@@ -278,121 +300,164 @@ med_optimal_para <- optimal_para %>%
 ## CRQA
 ```{r crqa function}
 # CRQA LOOP
-crqa_hell <- function(df, group_nr, var1, var2) {
+crqa_real <- function(df, group_nr_cond, var1, var2, del, emb, rad) {
   
+  # filtering argument
+  filtering_args <- data.frame(whack = group_nr_cond) %>%
+    separate(whack, c("cond", "group_nr"), sep = "_")
+  
+  cond <- filtering_args$cond
+  group_nr <- filtering_args$group_nr
+  
+  # filtering
   data <- df %>%
-    dplyr::filter(group == as.character(group_nr))
+    dplyr::filter(condition == as.character(cond)) %>%
+    dplyr::filter(group ==as.numeric(group_nr))
+    
   
   # computing
-  crqa_list <- list(crqa(ts1 = data[[var1]], 
-                            ts2 = data[[var2]], 
-                            delay = as.numeric(med_optimal_para[i, 3]), #delay 
-                            embed = as.numeric(med_optimal_para[i, 4]), #emdim 
-                            radius = as.numeric(med_optimal_para[i, 5]), #radius
-                            normalize=0,
-                            rescale=0,
-                            mindiagline =2,
+  crqa_list <- list(crqa(ts1 = data[[as.character(var1)]], 
+                            ts2 = data[[as.character(var2)]], 
+                            delay = del, #delay 
+                            embed = emb, #emdim 
+                            radius = rad, #radius
+                            normalize = 0,
+                            rescale = 0,
+                            mindiagline = 2,
                             minvertline = 2))
   
-  # list into matrix
-  crqa_matrix <- do.call("rbind", crqa_list)
+  # unlist
+  crqa_unlist <- unlist(crqa_list)
+  crqa_unlist$metric <- var1
+  crqa_unlist$group <- group_nr
+  crqa_unlist$condition <- cond
+  crqa_unlist$radius <- rad
   
-  # metrics, conditions, group nr
-  metrics_conditions <- as.matrix(med_optimal_para[,1:2])
-  group_nr_matrix <- as.matrix(rep(group_nr, times = 9))
-    
-  # merging
-  crqa_matrix_informative <- cbind(crqa_matrix, metrics_conditions)
-  crqa_matrix_informative_2 <- cbind(crqa_matrix_informative, group_nr_matrix)
-  
-  # return
-  return(crqa_matrix_informative_2)
-}
+  # remove tyrant
+  crqa_unlist$RP <- NULL
 
-make_crqa_DF <- function(input) {
-  
-  crqa_big_matrix <- do.call("rbind", input)
-  
-  crqa_df <- as.data.frame(crqa_big_matrix[,-10])
-  crqa_df <- as.data.frame(sapply(crqa_df, unlist), stringsAsFactors = F) 
-  
+  # return
+  crqa_df <- data.frame(crqa_unlist)
   return(crqa_df)
 }
 
-make_crqa_RP <- function(input) {
-  
-  crqa_big_matrix <- do.call("rbind", input)
-  crqa_rp <- as.matrix(crqa_big_matrix[,10:13])
-  
-  return(crqa_rp)
-}
 
 ```
 
-```{r crqa run}
+
+# real
+```{r crqa real}
 set.seed(666)
-start = Sys.time()
+group_sync <- paste0("Synchronous_", c(1, 2, 4:9))
+group_conv <- paste0("Conversation_", c(1, 2, 4:9))
+group_turn <- paste0("TurnTaking_", c(1, 2, 4:9))
 
 # loop trough all groups
-crqa_resp <- lapply(all_groups, 
-                       crqa_hell, 
-                       df = d4,
-                    var1 = "resp1S",
-                    var2 = "resp2S")
+crqa_hr <- map_df(GROUP,
+                  crqa_real, 
+                  df = d4,
+                  var1 = "",
+                  var2 = "",
+                  del = ,
+                  emb = ,
+                  rad = )
 
-crqa_hr <- lapply(all_groups, 
-                       crqa_hell, 
-                       df = d4,
+```
+
+```{r}
+new_jam <- list.files(path = "matrix/", pattern="crqa", full.names = T)
+
+crqa_real_df <- map_df(new_jam, read_csv)
+```
+
+
+## shuffle
+```{r}
+set.seed(666)
+d4_shuffle <- d4 %>% 
+  mutate(
+    hr1S = sample(hr1S),
+    hr2S = sample(hr2S),
+    resp1S = sample(resp1S),
+    resp2S = sample(resp2S))
+
+```
+
+```{r crqa shuffled}
+set.seed(666)
+group_sync <- paste0("Synchronous_", c(1, 2, 4:9))
+group_conv <- paste0("Conversation_", c(1, 2, 4:9))
+group_turn <- paste0("TurnTaking_", c(1, 2, 4:9))
+
+# loop trough all groups
+shuff_sync_RESP <- map_df(group_sync,
+                  crqa_real, 
+                  df = d4_shuffle,
+                  var1 = "resp1S",
+                  var2 = "resp2S",
+                  del = 22.5,
+                  emb = 2,
+                  rad = 0.4078281)
+
+shuff_conv_RESP <- map_df(group_conv,
+                  crqa_real, 
+                  df = d4_shuffle,
+                  var1 = "resp1S",
+                  var2 = "resp2S",
+                  del = 22.5,
+                  emb = 2,
+                  rad = 0.4078281)
+
+shuff_turn_RESP <- map_df(group_turn,
+                  crqa_real, 
+                  df = d4_shuffle,
+                  var1 = "resp1S",
+                  var2 = "resp2S",
+                  del = 22.5,
+                  emb = 2,
+                  rad = 0.4078281)
+
+###
+
+shuff_sync_HR <- map_df(group_sync,
+                  crqa_real, 
+                  df = d4_shuffle,
                   var1 = "hr1S",
-                  var2 = "hr2S")
+                  var2 = "hr2S",
+                  del = 10,
+                  emb = 16,
+                  rad = 1.4586380)
 
-crqa_ecg <- lapply(all_groups, 
-                       crqa_hell, 
-                       df = d4,
-                   var1 = "ecg1S",
-                   var2 = "ecg2S")
+shuff_conv_HR <- map_df(group_conv,
+                  crqa_real, 
+                  df = d4_shuffle,
+                  var1 = "hr1S",
+                  var2 = "hr2S",
+                  del = 10,
+                  emb = 16,
+                  rad = 1.4586380)
 
-# wrangling
-crqa_resp_df <- make_crqa_DF(crqa_resp)
-crqa_hr_df <- make_crqa_DF(crqa_hr)
-crqa_ecg_df <- make_crqa_DF(crqa_ecg)
-
-crqa_resp_rp <- make_crqa_RP(crqa_resp)
-crqa_hr_rp <- make_crqa_RP(crqa_hr)
-crqa_ecg_rp <- make_crqa_RP(crqa_ecg)
-
-
-# benchmark
-stop = Sys.time()
-stop - start
-
-
-# fix column type
-# write_csv(crqa_df, "crqa_df.csv")
-#crqa_df <- read_csv("crqa_df.csv") %>%
-#  rename(Group = V12)
+shuff_turn_HR <- map_df(group_turn,
+                  crqa_real, 
+                  df = d4_shuffle,
+                  var1 = "hr1S",
+                  var2 = "hr2S",
+                  del = 10,
+                  emb = 16,
+                  rad = 1.4586380)
 ```
 
+```{r crqa shuffle}
+Pattern_shuff <- grep("shuff_",names(.GlobalEnv),value=TRUE)
 
-
-```{r}
-
-crqa_ecg_df <- read.csv("matrix/crqa_ecg_df.csv")
-crqa_hr_df <- read.csv("matrix/crqa_hr_df.csv")
-crqa_resp_df <- read.csv("matrix/crqa_resp_df.csv")
-
-#the rds files 
-
-crqa_resp_rp <- readRDS("matrix/crqa_resp_rp.rds")
-
+crqa_shuff <- list(shuff_conv_HR,
+                   shuff_conv_RESP,
+                   shuff_sync_HR,
+                   shuff_sync_RESP, 
+                   shuff_turn_HR,
+                   shuff_turn_RESP) %>% reduce(full_join)
 ```
 
-plotty 
-
-```{r}
-head(crqa_ecg_df)
-
-```
 
 
 
@@ -413,19 +478,7 @@ ggplot(Prof, aes(timecourse,profile))+geom_line()+ geom_vline(xintercept = timec
 
 ## scrambling time-series
 rearange in a random order
-```{r}
 
-set.seed(666)
-d4_shuffle <- d4 %>% mutate(
-    hr1S = sample(hr1S),
-    hr2S = sample(hr2S),
-    resp1S = sample(resp1S),
-    resp2S = sample(resp2S),
-    ecg1S = sample(ecg1S),
-    ecg2S = sample(ecg2S)
-)
-
-```
 
 
 ## surrogate paths / controls
