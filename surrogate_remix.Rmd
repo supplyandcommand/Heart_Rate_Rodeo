@@ -5,60 +5,195 @@ date: "16 nov 2018"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-#group 10 --> group 3 
+The actual expand
 
-library(reshape2)
-d4 <- d4 %>%
-  mutate(group2 = ifelse(group == 10, 3, group))
-
-library(tidyverse)
-
-#Subset for melting 
-
-d5 <- d4 %>%
-  ungroup() %>%
-  select(resp1S, resp2S, group2)
-
-d6 <- melt(d5, id.vars = "group2")
-
-#Adding a unique column 
-
-library(tidyr)
-d6 <- d6 %>%
-  mutate(greatness = paste(group2, variable))
-
-d6$greatness <- as.numeric(as.factor(d6$greatness))
-
-#almost works                        
-unite("unique", c("group2", "variable"))
-
+```{r}
 #Making the pairs 
-
 set.seed(666)
 expand <- expand.grid(persons1 = seq(1,18,1), persons2 = seq(1,18,1)) %>%
   filter(persons1 < persons2)
   
-
+#153 combinations. 
 expand
 ```
 
-## R Markdown
+The whole long-format thing. 
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+```{r setup, include=FALSE}
+#group 10 --> group 3.
+#importantly as d5. 
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+library(reshape2)
+library(tidyverse)
+d5 <- d4 %>%
+  mutate(group2 = ifelse(group == 10, 2, group)) #This works because 2 comes after (just like 10 does. So, it works by accident - which is good enough for now.)
+d5$group2 <- as.factor(d5$group2)
+
+#it works. 
+table(d5$group2)
+summary(d5$group2)
+summary(d5$group) #5890 both - so it is good. 
+
+
+#Subset for melting with RESP
+d6 <- d5 %>%
+  ungroup() %>%
+  select(resp1S, resp2S, group2)
+
+d7 <- melt(d6, id.vars = "group2")
+
+#Subset for melting with HR
+d8 <- d5 %>%
+  ungroup() %>%
+  select(hr1S, hr2S, group2)
+
+d9 <- melt(d8, id.vars = "group2")
+
+#Renaming both d7 & d9 
+d7 <- d7 %>%
+  rename(resp = variable, resp_value = value)
+
+d9 <- d9 %>%
+  rename(hr = variable, hr_value = value)
+
+#combining & eliminating 
+d10 <- cbind(d7, d9)
+d10 <- d10[,-4] #getting rid of one of the group2 columns. 
+
+#Adding a unique column 
+library(tidyr)
+d11 <- d10 %>%
+  mutate(greatness = paste(group2, resp))
+
+d11$greatness <- as.factor(as.numeric(as.factor(d11$greatness)))
+summary(d11$greatness) #great stuff. 
+
+d11
+
+
+```
+
+Victor TRY
 
 ```{r cars}
-summary(cars)
+
+d12 <- d11 %>%
+  filter(greatness == exp_unique[1,1]) %>%
+  select(resp_value, hr_value, greatness)#how do we group 
+
+d13 <- d11 %>%
+  filter(greatness == exp_unique[1,2]) %>%
+  select(resp_value2 = resp_value, hr_value2 = hr_value, greatness2 = greatness) 
+
+d14 <- cbind(d12, d13)
+
+#making it into a loop 
+exp_unique <- expand %>%
+  mutate(uniqueness = paste(persons1, persons2)) 
+
+exp_unique$uniqueness <- as.numeric(as.factor(as.numeric(as.factor(exp_unique$uniqueness))))
+
+#trying something funny
+
+i=1
+the_price <- NULL
+the_test <- NULL
+
+
+for (i in exp_unique) {
+  funky1 <- d11 %>%
+  filter(greatness == exp_unique[i,1]) %>%
+  select(resp_value, hr_value, greatness) 
+
+  funky2 <- d11 %>%
+  filter(greatness == exp_unique[i,2]) %>%
+  select(resp_value2 = resp_value, hr_value2 = hr_value, greatness2 = greatness) 
+  
+  price <- cbind(na.omit(funky1, funky2))
+  the_price[i] <- cbind(na.omit(funky1, funky2)) #this is prob. not legit. 
+  
+  i=i+1
+  
+}
+
+
 ```
 
-## Including Plots
+Telma RIPOFF
 
-You can also embed plots, for example:
+```{r}
+
+expand <- expand %>%
+  rename(p1 = persons1, p2 = persons2)
+
+d4 <- d4[,-c(8:10)]
+
+n = 1
+# conversation
+surrogate_func_c <- function(data) {
+  
+  #create an empty df
+  df <- data.frame()
+  df <- setNames(data.frame(matrix(ncol=11, nrow=153)),c('p1','p2',"RR_resp","DET_resp","NRLINE_resp","maxL_resp","L_resp","ENTR_resp", "rENTR_resp", "LAM_resp", "TT_resp"))
+  
+  for (n in 1:153) {
+    # participants
+    p1 <- dplyr::filter(data, group == expand[n,1] , condition == "Conversation") 
+    p2 <- dplyr::filter(data, group == expand[n,2] , condition == "Conversation")
+    
+    #run crqa
+    results <- crqa(p1$Resp1S, p2$Resp2S,embed = 2, delay = 25.5, radius = 0.408, normalize = 0,  rescale = 0,  mindiagline = 2,  minvertline = 2,  tw = 0,  whiteline = FALSE,  recpt = FALSE )
+    
+    # save into a df
+    df$p1[n] <- unique(p1$group)
+    df$p2[n] <- unique(p2$group)
+    df$RR_resp[n] <- results$RR
+    df$DET_resp[n] <- results$DET
+    df$NRLINE_resp[n] <- results$NRLINE
+    df$maxL_resp[n] <- results$maxL
+    df$L_resp[n] <- results$L
+    df$ENTR_resp[n] <- results$ENTR
+    df$rENTR_resp[n] <- results$rENTR
+    df$LAM_resp[n] <- results$LAM
+    df$TT_resp[n] <- results$TT
+    
+    n = n+1
+  }
+  return(df)    
+    
+  }
+
+surrogate_func_c(d4)
+
+```
+
+Anders SUICIDE
 
 ```{r pressure, echo=FALSE}
-plot(pressure)
+
+surrogate_list = c() #empty object 
+for (i in 1:30) { #changed to 153
+    
+    surrogate_list[i] <- list(d4 %>% filter(group == expand[i,1])) #first column 
+    surrogate_list[[i]] <- surrogate_list[[i]][order(surrogate_list[[i]]$condition),]
+
+    part_2 <- d4 %>% filter(group == expand[i,2]) #second column (participant)
+    part_2 <- part_2[order(part_2$condition), ]
+    
+    surrogate_list[[i]] = surrogate_list[[i]][1:7200, ]
+ 
+    surrogate_list[[i]]$hr2S = part_2$hr2S[1:7200]
+    surrogate_list[[i]]$resp2S = part_2$resp2S[1:7200]
+    surrogate_list[[i]]$ecg2S = part_2$ecg2S[1:7200]
+    
+    surrogate_list[[i]]$group = i
+
+    i = i + 1
+}
+
+surrogate_df <- do.call("rbind", surrogate_list)
+
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
