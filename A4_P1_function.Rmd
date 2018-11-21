@@ -21,6 +21,18 @@ cl <- makeCluster(detectCores(), type='PSOCK')
 registerDoParallel(cl)
 ```
 
+```{r loading finished stuff}
+# preprocessed data
+d4 <- read_csv("d4.csv")
+
+# optimal parameters
+med_optimal_para <- read_csv("med_optimal_para.csv")
+
+# crqa datasets
+crqa_real_df <- read_csv("crqa_real_df.csv")
+crqa_shuff <- read_csv("crqa_shuff.csv")
+```
+
 
 ## data loado
 ```{r data loading}
