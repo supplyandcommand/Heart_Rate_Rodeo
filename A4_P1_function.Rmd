@@ -44,7 +44,10 @@ crqa_surr <- read_csv("crqa_surr.csv") %>%
 
 # merging
 crqa_results <- full_join(crqa_real_df, crqa_shuff) %>%
-  full_join(crqa_surr)
+  full_join(crqa_surr) %>%
+  mutate_all(funs(replace(., is.na(.), 0))) %>%
+  mutate(p1 = ifelse(p1 == 0, NA, p1),
+         p2 = ifelse(p2 == 0, NA, p2))
 ```
 
 
