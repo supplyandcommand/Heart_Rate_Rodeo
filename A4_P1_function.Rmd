@@ -514,11 +514,66 @@ for (i in c(1:9)) {
 rm(i, maxc, minc)
 ```
 
-```{r first modeling}
-m1 <- lmer(RR ~ . + (1|Group), data = crqa_scaled)
+
+
+Statistically test shuff & real. 
+We cannot use a t.test because our data is not normally distributed (residuals)
+We do Wilcox instead because that does not have the assumption of normal distribution.
+The key question is whether our data points are independent - or should be paired. 
+We are assuming that ours are independent. 
+
+```{r}
+
+wilcox.test(crqa_real$RR, crqa_shuff$RR, alternative = "two.sided")
+wilcox.test(crqa_real$DET, crqa_shuff$DET, alternative = "two.sided")
+wilcox.test(crqa_real$maxL, crqa_shuff$maxL, alternative = "two.sided")
+
 ```
 
+difference between real & surrogate.
 
+```{r}
+
+wilcox.test(crqa_real$RR, crqa_surr$RR, alternative = "two.sided")
+wilcox.test(crqa_real$DET, crqa_surr$DET, alternative = "two.sided")
+wilcox.test(crqa_real$maxL, crqa_surr$maxL, alternative = "two.sided")
+
+```
+
+mixed models 
+participant as random effect (not with lme4)
+study (different years) as random effects if we use these. 
+
+
+```{r first modeling}
+#subsets for modelling 
+crqa_HR <- crqa_results %>%
+  filter(metric == "hr1S")
+
+crqa_resp <- crqa_results %>%
+  filter(metric == "resp1S")
+
+#RR based on reality status  
+m1 <- lm(RR ~ condition * reality_status, crqa_resp)
+summary(m1)
+
+m2 <- lm(RR ~ condition * reality_status, crqa_HR)
+summary(m2)
+
+#DET based on reality status
+m3 <- lm(DET ~ condition * reality_status, crqa_resp)
+summary(m3)
+
+m4 <- lm(DET ~ condition * reality_status, crqa_HR)
+summary(m4)
+
+
+```
+
+## tip for next job
+
+HR directly from resp.
+resp as predictors for HR. 
 
 ## cross-validation?
 
