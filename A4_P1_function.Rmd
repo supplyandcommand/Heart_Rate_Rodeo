@@ -33,7 +33,7 @@ med_optimal_para <- read_csv("med_optimal_para.csv")
 
 
 # crqa datasets
-crqa_real <- read_csv("crqa_real_df.csv") %>%
+crqa_real <- read_csv("crqa_real.csv") %>%
   mutate(reality_status = "real") %>%
   mutate_all(funs(replace(., is.na(.), 0)))
 
@@ -783,10 +783,17 @@ summary_resp <- map_df(all_cals,
 
 # plotting the interactions
 ```{r interaction plot}
-ggplot(resp, aes(condition, RR, color = reality_status, group = reality_status)) +
+ggplot(crqa_HR, aes(condition, RR, color = reality_status, group = reality_status)) +
   stat_summary(fun.y = mean, geom = "point", size = 1) + 
   stat_summary(fun.data = mean_cl_normal, geom = "errorbar") +
-  stat_summary(fun.y = mean, geom = "line")
+  stat_summary(fun.y = mean, geom = "line") +
+  labs(title ="HR")
+
+ggplot(crqa_RESP, aes(condition, RR, color = reality_status, group = reality_status)) +
+  stat_summary(fun.y = mean, geom = "point", size = 1) + 
+  stat_summary(fun.data = mean_cl_normal, geom = "errorbar") +
+  stat_summary(fun.y = mean, geom = "line") +
+  labs(title = "RESP")
 ```
 
 
