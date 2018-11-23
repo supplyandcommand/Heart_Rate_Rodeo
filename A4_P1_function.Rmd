@@ -737,7 +737,18 @@ summary(m3)
 m4 <- lm(DET ~ condition * reality_status, crqa_HR)
 summary(m4)
 
+#predicting from heart coordination from respiration coordination
+df_list <- split(crqa_results, crqa_results$metric)
+crqa_split <- do.call("cbind", data)
 
+m5 <- lm(hr1S.RR ~ resp1S.RR, crqa_split)
+summary(m5)
+
+m6 <- lm(hr1S.DET ~ resp1S.DET, crqa_split)
+summary(m6)
+
+m7 <- lm(hr1S.L ~ resp1S.L, crqa_split)
+summary(m7)
 ```
 
 
