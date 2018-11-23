@@ -739,7 +739,7 @@ summary(m4)
 
 #predicting from heart coordination from respiration coordination
 df_list <- split(crqa_results, crqa_results$metric)
-crqa_split <- do.call("cbind", data)
+crqa_split <- do.call("cbind", df_list)
 
 m5 <- lm(hr1S.RR ~ resp1S.RR, crqa_split)
 summary(m5)
