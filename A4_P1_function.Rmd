@@ -33,21 +33,24 @@ med_optimal_para <- read_csv("med_optimal_para.csv")
 
 # crqa datasets
 crqa_real <- read_csv("crqa_real_df.csv") %>%
-  mutate(reality_status = "real")
+  mutate(reality_status = "real") %>%
+  mutate_all(funs(replace(., is.na(.), 0)))
 
 crqa_shuff <- read_csv("crqa_shuff.csv") %>%
-  mutate(reality_status = "shuffled")
+  mutate(reality_status = "shuffled") %>%
+  mutate_all(funs(replace(., is.na(.), 0)))
 
 crqa_surr <- read_csv("crqa_surr.csv") %>%
-  mutate(reality_status = "surrogate")
-
-
-# merging
-crqa_results <- full_join(crqa_real, crqa_shuff) %>%
-  full_join(crqa_surr) %>%
+  mutate(reality_status = "surrogate") %>%
   mutate_all(funs(replace(., is.na(.), 0))) %>%
   mutate(p1 = ifelse(p1 == 0, NA, p1),
          p2 = ifelse(p2 == 0, NA, p2))
+
+# merging
+crqa_results <- full_join(crqa_real, crqa_shuff) %>%
+  full_join(crqa_surr)
+ 
+  
 ```
 
 
