@@ -1,0 +1,697 @@
+---
+title: "A4_P1_function"
+author: "JK"
+date: "8 listopadu 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(pacman)
+p_load(tidyverse,
+       gridExtra, #grid.arrange()
+       crqa, #crqa()
+       lmerTest,
+       doParallel, #parallel processing
+       reshape2,
+       Hmisc, #errorbars in plotting
+       groupdata2) #downsampling
+
+# parallel processing
+cl <- makeCluster(detectCores(), type='PSOCK')
+registerDoParallel(cl)
+```
+
+# PREPROCESSING
+## LOADING CSV FILES
+
+```{r data loading}
+### list of file names to load
+files <- list.files(path = "data/", pattern="Study3", full.names = T)
+
+
+### loading funciton
+read_heart <- function(filename) {
+    raw <- read_csv(filename,
+                    #reading columns, correct types, exculding ECG
+                    col_types = list(time = col_double(),
+                                     Resp1 = col_double(),
+                                     Resp2 = col_double(),
+                                     ECG1 = col_skip(),
+                                     ECG2 = col_skip(),
+                                     ReadingStart = col_integer(),
+                                     ReadingStop = col_integer(),
+                                     HR1 = col_double(),
+                                     HR2 = col_double()))
+    # make filename a vector
+    name <- as.character(filename)
+    # include filename as column
+    data <- cbind(raw, name) %>%
+      mutate(nrow = nrow(raw))
+    
+    # gather information from filename
+    data <- data %>%
+      #erase path details
+      mutate(name = str_remove_all(name, "data/"),
+         name = str_remove_all(name, ".csv")) %>%
+      
+      #create new variables from parts of the filename
+      #filenames do not have same lengths, str_remove_all is for cleaning the leftovers resulting from this
+      mutate(study = substr(name, 6, 6),
+         # group
+         group = substr(name, 9, 10),
+         group = str_remove_all(group, "_"),
+         # t
+         t = substr(name, 12, 13),
+         t = str_remove_all(t, "_"),
+         t = str_remove_all(t, "T"),
+         # condition
+         condition = substr(name, 14, 30),
+         condition = str_remove_all(condition, "_")) %>%
+      
+      select(-name)
+    
+    return(data)
+}
+
+
+### loop over the function
+all <- map_df(files, read_heart) %>%
+  # take study 3 only
+  filter(study == "3") %>%
+  # set column types again, as map_df messes things up
+  mutate(t = factor(t),
+         condition = factor(condition),
+         ReadingStart = as.numeric(ReadingStart),
+         ReadingStop = as.numeric(ReadingStop),
+         nrow = as.numeric(nrow),
+         study = factor(study),
+         group = factor(group)) %>%
+  rownames_to_column()
+```
+
+
+## PREPROCESSING FUNCTION
+
+```{r preprocessing}
+### preprocessing function
+# includes: downsampling, outlier removal and scaling
+
+idiot1_idiot2_analysis <- function(data, threshold) {
+  
+  ## DOWNSAMPLING
+  
+  # summarise
+  d1 <- data %>%
+    group(n = 100, method = 'greedy') %>%
+    dplyr::summarise(
+      TimeMs = mean(TimeMs,na.rm=T),
+      HR1 = mean(HR1,na.rm=T),
+      HR2 = mean(HR2,na.rm=T),
+      Resp1 = mean(Resp1,na.rm=T),
+      Resp2 = mean(Resp2,na.rm=T),
+      rowname = rowname[1]) #the index we use to put them back together 
+  
+  # collect
+  d2 <- left_join(d1, data, by = "rowname") %>%
+    select(-matches("\\.y"))
+  
+  
+  
+  ## OUTLIERS
+  # funciton
+  removeOuts <- function(ts,threshold){
+    ts[ts > (mean(ts,na.rm=T) +
+               (threshold*sd(ts,na.rm=T))) | 
+         ts < (mean(ts,na.rm=T) -
+                 (threshold*sd(ts,na.rm=T)))] = mean(ts,na.rm=T)
+    return(ts)
+  }
+  
+  # set threshold
+  threshold=threshold
+  
+  # do the job
+  d3 <- d2 %>%
+    group_by(group, condition) %>%
+    mutate(hr1  = removeOuts(HR1.x, threshold),
+           hr2  = removeOuts(HR2.x, threshold),
+           resp1 = removeOuts(Resp1.x, threshold),
+           resp2 = removeOuts(Resp2.x, threshold))
+  
+  
+  
+  ## SCALING
+  
+  # function
+  z_scale <- function(column){
+    column_c <- (column - mean(column)) / sd(column)
+  }
+  
+  # do the job
+  d4 <- d3 %>%
+    group_by(condition, group) %>%
+    mutate(resp1S = z_scale(resp1),
+           resp2S = z_scale(resp2),
+           hr1S = z_scale(hr1),
+           hr2S = z_scale(hr2))
+  
+  ## OUTPUT
+  return(d4)
+  
+}
+
+# run funciton & remove raw data
+d4 <- idiot1_idiot2_analysis(all, threshold = 2.5)
+rm(all)
+```
+
+
+## PLOTTING FUNCTION
+to get to know the dataset
+
+```{r plotting}
+plotty <- function(data, group_nr){
+  c1 <- data %>%
+    filter(group == group_nr) %>%
+    ggplot() +
+    geom_line(aes(as.numeric(TimeMs.x), hr1S, color = "P1")) +
+    geom_line(aes(as.numeric(TimeMs.x), hr2S, color = "P2")) +
+    labs(x = "time in 100 ms", y = "HR") +
+    theme(legend.position="bottom")
+  
+  # scaled RESP
+  c2 <- data %>%
+    filter(group == group_nr) %>%
+    ggplot() +
+    geom_line(aes(as.numeric(TimeMs.x), resp1S, color = "P1")) +
+    geom_line(aes(as.numeric(TimeMs.x), resp2S, color = "P2")) +
+    labs(x = "time in 100 ms", y = "RESP") +
+    theme(legend.position="bottom")
+  
+  ## colected
+  grid.arrange(c1, c2, ncol=2, top = "Plots of physiological data (HR, RESP, ECG) with downsampling, outlier removal & scaling", 
+               bottom = paste0("Group ", group_nr))
+  
+}
+
+plotty(d4, group_nr = "2")
+```
+
+
+# OPTIMIZING PARAMETERS
+## SETUP OF optimizeParam()
+
+```{r optimize setup}
+## set parameters
+par = list(lgM = 50, 
+           steps = seq(1, 6, 1), 
+           radiusspan = 100,
+           radiussample = 40, 
+           normalize = 0, 
+           rescale = 0, #slide code = 0
+           mindiagline = 2,
+           minvertline = 2, 
+           tw = 0, 
+           whiteline = FALSE, 
+           recpt = FALSE, 
+           fnnpercent = 10, 
+           typeami = "mindip")
+
+
+
+## version of optimizeParam that returnt an error message if something goes wrong
+# agruments: timeseries and parameters for optimizeParam() function
+
+non_picky_optimizeParam <- function(TS1, TS2, parameters) {
+  
+  return(
+    # try running the expression using specified arugments
+    tryCatch(expr = (optimizeParam(TS1, TS2, parameters, min.rec = 3.5, max.rec = 4.5)),
+             # when error / warning occurs, it saves the message as character
+           error=function(e) as.character(e), warning=function(w) as.character(w))
+    )
+}
+
+
+
+## THE FUNCTION
+optimizeAlot_tidy <- function(df, group_nr, parameter_list) {
+  
+  # one group only
+  data <- df %>%
+    dplyr::filter(group == as.character(group_nr))
+  
+  ## optimize
+  
+  HR <- non_picky_optimizeParam(data$hr1S, data$hr2S, parameters = parameter_list)
+  
+  RESP <- non_picky_optimizeParam(data$resp1S, data$resp2S, parameters = parameter_list)
+  
+  ## initialize dataframe
+  
+  bind_empty <- data_frame(radius=character(),
+                           delay=character(), 
+                           emddim=character(), 
+                           group=character(),
+                           metric=character()) 
+  
+  ## bind that
+  
+  bind_HR <- bind_empty %>%
+    add_row(radius = as.character(ifelse(is_character(HR), HR[[1]], HR[["radius"]])),
+           delay = as.character(ifelse(is_character(HR), HR[[1]], HR[["delay"]])),
+           emddim = as.character(ifelse(is_character(HR), HR[[1]], HR[["emddim"]])),
+           group = as.character(group_nr),
+           metric = as.character("HR"))
+  
+  bind_RESP <- bind_empty %>%
+    add_row(radius = as.character(ifelse(is_character(RESP), RESP[[1]], RESP[["radius"]])),
+           delay = as.character(ifelse(is_character(RESP), RESP[[1]], RESP[["delay"]])),
+           emddim = as.character(ifelse(is_character(RESP), RESP[[1]], RESP[["emddim"]])),
+           group = as.character(group_nr),
+           metric = as.character("RESP"))
+  
+  bind <- full_join(bind_HR, bind_RESP)
+  
+  ## return
+  return(bind)
+  
+}
+```
+
+## running optimisation
+watch out! Takes quite a while to run
+```{r optimize run}
+set.seed(666)
+all_groups <- c(1, 2, 4:10)
+
+system.time(optimal_para <- map_df(all_groups, 
+                       optimizeAlot_tidy, 
+                       df = d4,
+                       parameter_list = par))
+
+```
+
+
+## median parameters
+```{r med_optimal}
+# taking median parameter from each metric to represent them all
+med_optimal_para <- optimal_para %>%
+  mutate(delay = as.numeric(delay),
+         emddim = as.numeric(emddim),
+         radius = as.numeric(radius)) %>%
+  
+  group_by(metric) %>%
+  
+  summarise(delay = median(delay, na.rm = T),
+            emddim = median(emddim, na.rm = T),
+            radius = median(radius, na.rm = T))
+```
+
+
+# CRQA
+## SETTING UP FUNCTION FOR REAL PAIRS
+
+```{r crqa function}
+crqa_real <- function(df, group_nr_cond, var1, var2, del, emb, rad) {
+  
+  # filtering argument
+  filtering_args <- data.frame(whack = group_nr_cond) %>%
+    separate(whack, c("cond", "group_nr"), sep = "_")
+  
+  cond <- filtering_args$cond
+  group_nr <- filtering_args$group_nr
+  
+  # filtering
+  data <- df %>%
+    dplyr::filter(condition == as.character(cond)) %>%
+    dplyr::filter(group ==as.numeric(group_nr))
+    
+  
+  # computing
+  crqa_list <- list(crqa(ts1 = data[[as.character(var1)]], 
+                            ts2 = data[[as.character(var2)]], 
+                            delay = del, #delay 
+                            embed = emb, #emdim 
+                            radius = rad, #radius
+                            normalize = 0,
+                            rescale = 0,
+                            mindiagline = 2,
+                            minvertline = 2))
+  
+  # unlist
+  crqa_unlist <- unlist(crqa_list)
+  crqa_unlist$metric <- var1
+  crqa_unlist$group <- group_nr
+  crqa_unlist$condition <- cond
+  crqa_unlist$radius <- rad
+  
+  # remove tyrant
+  crqa_unlist$RP <- NULL
+
+  # return
+  crqa_df <- data.frame(crqa_unlist)
+  return(crqa_df)
+}
+```
+
+
+## running CRQA on real pairs
+```{r crqa real}
+set.seed(666) 
+group_sync <- paste0("Synchronous_", c(1, 2, 4:10))
+group_conv <- paste0("Conversation_", c(1, 2, 4:10))
+group_turn <- paste0("TurnTaking_", c(1, 2, 4:10))
+
+# loop trough all groups
+real_sync_RESP <- map_df(group_sync,
+                  crqa_real, 
+                  df = d4,
+                  var1 = "resp1S",
+                  var2 = "resp2S",
+                  del = 22.5,
+                  emb = 2,
+                  rad = 0.4078281)
+
+real_conv_RESP <- map_df(group_conv,
+                  crqa_real, 
+                  df = d4,
+                  var1 = "resp1S",
+                  var2 = "resp2S",
+                  del = 22.5,
+                  emb = 2,
+                  rad = 0.4078281)
+
+real_turn_RESP <- map_df(group_turn,
+                  crqa_real, 
+                  df = d4,
+                  var1 = "resp1S",
+                  var2 = "resp2S",
+                  del = 22.5,
+                  emb = 2,
+                  rad = 0.4078281)
+
+###
+
+real_sync_HR <- map_df(group_sync,
+                  crqa_real, 
+                  df = d4,
+                  var1 = "hr1S",
+                  var2 = "hr2S",
+                  del = 10,
+                  emb = 16,
+                  rad = 1.4586380)
+
+real_conv_HR <- map_df(group_conv,
+                  crqa_real, 
+                  df = d4,
+                  var1 = "hr1S",
+                  var2 = "hr2S",
+                  del = 10,
+                  emb = 16,
+                  rad = 1.4586380)
+
+real_turn_HR <- map_df(group_turn,
+                  crqa_real, 
+                  df = d4,
+                  var1 = "hr1S",
+                  var2 = "hr2S",
+                  del = 10,
+                  emb = 16,
+                  rad = 1.4586380)
+```
+
+## merging output from real pairs
+```{r}
+Pattern_real <- grep("real_",names(.GlobalEnv),value=TRUE)
+
+crqa_real <- list(real_conv_HR,
+                   real_conv_RESP,
+                   real_sync_HR,
+                   real_sync_RESP, 
+                   real_turn_HR,
+                   real_turn_RESP) %>% reduce(full_join)
+```
+
+
+## SHUFFLED PAIRS
+### shuffling
+```{r shuffling}
+set.seed(666)
+d4_shuffle <- d4 %>% 
+  mutate(
+    hr1S = sample(hr1S),
+    hr2S = sample(hr2S),
+    resp1S = sample(resp1S),
+    resp2S = sample(resp2S))
+
+```
+
+## running CRQA on shuffled paris
+```{r crqa shuffled}
+set.seed(666)
+group_sync <- paste0("Synchronous_", c(1, 2, 4:10))
+group_conv <- paste0("Conversation_", c(1, 2, 4:10))
+group_turn <- paste0("TurnTaking_", c(1, 2, 4:10))
+
+# loop trough all groups
+shuff_sync_RESP <- map_df(group_sync,
+                  crqa_real, 
+                  df = d4_shuffle,
+                  var1 = "resp1S",
+                  var2 = "resp2S",
+                  del = 22.5,
+                  emb = 2,
+                  rad = 0.4078281)
+
+shuff_conv_RESP <- map_df(group_conv,
+                  crqa_real, 
+                  df = d4_shuffle,
+                  var1 = "resp1S",
+                  var2 = "resp2S",
+                  del = 22.5,
+                  emb = 2,
+                  rad = 0.4078281)
+
+shuff_turn_RESP <- map_df(group_turn,
+                  crqa_real, 
+                  df = d4_shuffle,
+                  var1 = "resp1S",
+                  var2 = "resp2S",
+                  del = 22.5,
+                  emb = 2,
+                  rad = 0.4078281)
+
+###
+
+shuff_sync_HR <- map_df(group_sync,
+                  crqa_real, 
+                  df = d4_shuffle,
+                  var1 = "hr1S",
+                  var2 = "hr2S",
+                  del = 10,
+                  emb = 16,
+                  rad = 1.4586380)
+
+shuff_conv_HR <- map_df(group_conv,
+                  crqa_real, 
+                  df = d4_shuffle,
+                  var1 = "hr1S",
+                  var2 = "hr2S",
+                  del = 10,
+                  emb = 16,
+                  rad = 1.4586380)
+
+shuff_turn_HR <- map_df(group_turn,
+                  crqa_real, 
+                  df = d4_shuffle,
+                  var1 = "hr1S",
+                  var2 = "hr2S",
+                  del = 10,
+                  emb = 16,
+                  rad = 1.4586380)
+```
+
+
+## merge output from shuffled pairs
+```{r crqa shuffle}
+Pattern_shuff <- grep("shuff_",names(.GlobalEnv),value=TRUE)
+
+crqa_shuff <- list(shuff_conv_HR,
+                   shuff_conv_RESP,
+                   shuff_sync_HR,
+                   shuff_sync_RESP, 
+                   shuff_turn_HR,
+                   shuff_turn_RESP) %>% reduce(full_join)
+```
+
+
+## SURROGARE
+```{r crqa surrogate wrangle}
+d5 <- d4 %>%
+  dplyr::mutate(group2 = ifelse(group == 10, 3, group)) 
+# This works because 2 comes after (just like 10 does. So, it works by accident - which is good enough for now.)
+# WATCH OUT, MY WORKS WITH 3, SOME WORK WITH 2
+
+d5$group2 <- as.factor(d5$group2)
+
+#Subset for melting with RESP
+d6 <- d5 %>%
+  ungroup() %>%
+  select(resp1S, resp2S, group2)
+
+d7 <- melt(d6, id.vars = "group2")
+
+#Subset for melting with HR
+d8 <- d5 %>%
+  ungroup() %>%
+  select(hr1S, hr2S, group2)
+
+d9 <- melt(d8, id.vars = "group2")
+
+#Renaming both d7 & d9 
+d7 <- d7 %>%
+  rename(resp = variable, resp_value = value)
+
+d9 <- d9 %>%
+  rename(hr = variable, hr_value = value)
+
+#combining & eliminating 
+d10 <- cbind(d7, d9)
+d10 <- d10[,-4] #getting rid of one of the group2 columns. 
+
+#Adding a unique column 
+d11 <- d10 %>%
+  mutate(greatness = paste(group2, resp))
+
+d11$greatness <- as.factor(as.numeric(as.factor(d11$greatness)))
+#summary(d11$greatness) #great stuff. 
+
+#adding something more 
+#doing something 
+d12 <- d5 %>%
+  ungroup() %>%
+  select(hr1S, hr2S, condition)
+
+d13 <- melt(d12, id.vars = "condition")
+
+d14 <- cbind(d11, d13)
+d14 <- d14[,-c(8:9)]
+d14$greatness <- as.numeric(d14$greatness)
+```
+
+```{r expand grid}
+set.seed(666)
+expand <- expand.grid(persons1 = seq(1,18,1), persons2 = seq(1,18,1)) %>%
+  filter(persons1 < persons2)
+  
+#153 combinations. 
+expand <- expand %>%
+  rename(p1 = persons1, p2 = persons2) 
+```
+
+```{r surrogate function}
+surrogate_RESP <- function(data, condition_name) {
+  
+  #create an empty df
+  df <- data.frame()
+  df <- setNames(data.frame(matrix(ncol=12, nrow=153)),c('p1','p2',"RR","DET","NRLINE","maxL","L","ENTR", "rENTR", "LAM", "TT", "metric"))
+  
+  
+  
+  for (n in 1:153) {
+    # participants
+    p1 <- dplyr::filter(data, data$greatness == expand[n,1], 
+                        data$condition == as.character(condition_name))
+    p2 <- dplyr::filter(data, data$greatness == expand[n,2], 
+                        data$condition == as.character(condition_name))
+    
+    #vectors 
+    v1 <- p1[["resp_value"]]
+    v2 <- p2[["resp_value"]]
+    
+    #run crqa
+    results <- crqa(v1, v2, embed = 2, delay = 25.5, radius = 0.408, normalize = 0,  rescale = 0,  mindiagline = 2,  minvertline = 2,  tw = 0,  whiteline = FALSE,  recpt = FALSE)
+    
+    # save into a df
+    df$p1[n] <- unique(p1$greatness)
+    df$p2[n] <- unique(p2$greatness)
+    df$RR[n] <- results$RR
+    df$DET[n] <- results$DET
+    df$NRLINE[n] <- results$NRLINE
+    df$maxL[n] <- results$maxL
+    df$L[n] <- results$L
+    df$ENTR[n] <- results$ENTR
+    df$rENTR[n] <- results$rENTR
+    df$LAM[n] <- results$LAM
+    df$TT[n] <- results$TT
+    df$metric <- "resp1S"
+    df$condition <- condition_name
+    df$radius <- 0.408
+    
+    n = n+1
+  }
+  return(df)    
+}
+###
+surrogate_HR <- function(data, condition_name) {
+  
+  #create an empty df
+  df <- data.frame()
+  df <- setNames(data.frame(matrix(ncol=12, nrow=153)),c('p1','p2',"RR","DET","NRLINE","maxL","L","ENTR", "rENTR", "LAM", "TT", "metric"))
+  
+  
+  
+  for (n in 1:153) {
+    # participants
+    p1 <- dplyr::filter(data, data$greatness == expand[n,1], 
+                        data$condition == as.character(condition_name))
+    p2 <- dplyr::filter(data, data$greatness == expand[n,2], 
+                        data$condition == as.character(condition_name))
+    
+    #vectors 
+    v1 <- p1[["hr_value"]]
+    v2 <- p2[["hr_value"]]
+    
+    #run crqa
+    results <- crqa(v1, v2, embed = 16, delay = 10, radius = 1.459, normalize = 0,  rescale = 0,  mindiagline = 2,  minvertline = 2,  tw = 0,  whiteline = FALSE,  recpt = FALSE)
+    
+    # save into a df
+    df$p1[n] <- unique(p1$greatness)
+    df$p2[n] <- unique(p2$greatness)
+    df$RR[n] <- results$RR
+    df$DET[n] <- results$DET
+    df$NRLINE[n] <- results$NRLINE
+    df$maxL[n] <- results$maxL
+    df$L[n] <- results$L
+    df$ENTR[n] <- results$ENTR
+    df$rENTR[n] <- results$rENTR
+    df$LAM[n] <- results$LAM
+    df$TT[n] <- results$TT
+    df$metric <- "hr1S"
+    df$condition <- condition_name
+    df$radius <- 1.459
+      
+      n = n+1
+  }
+  return(df)    
+}
+```
+
+```{r surrogate run}
+set.seed(666)
+condition_list <- names(table(d14$condition))
+
+n = 1
+surr_HR_df <- map_df(condition_list,
+                     surrogate_HR,
+                     data = d14)
+n = 1
+surr_RESP_df <- map_df(condition_list,
+                       surrogate_RESP,
+                       data = d14)
+
+surr_r <- full_join(surr_HR_df, surr_RESP_df)
+```

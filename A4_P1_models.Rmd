@@ -1,0 +1,293 @@
+---
+title: "A4_P1_function"
+author: "JK"
+date: "8 listopadu 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(pacman)
+p_load(tidyverse,
+       gridExtra, #grid.arrange()
+       crqa, #crqa()
+       lmerTest,
+       doParallel, #parallel processing
+       reshape2,
+       Hmisc, #errorbars in plotting
+       groupdata2) #downsampling
+
+# parallel processing
+cl <- makeCluster(detectCores(), type='PSOCK')
+registerDoParallel(cl)
+```
+
+```{r loading finished stuff}
+# preprocessed data
+d4 <- read_csv("d4.csv")
+
+
+# optimal parameters
+med_optimal_para <- read_csv("med_optimal_para.csv")
+
+
+# crqa datasets
+crqa_real <- read_csv("crqa_real.csv") %>%
+  mutate(reality_status = "real") %>%
+  mutate_all(funs(replace(., is.na(.), 0)))
+
+crqa_shuff <- read_csv("crqa_shuff.csv") %>%
+  mutate(reality_status = "shuffled") %>%
+  mutate_all(funs(replace(., is.na(.), 0)))
+
+crqa_surr <- read_csv("crqa_surr.csv") %>%
+  mutate(reality_status = "surrogate") %>%
+  mutate_all(funs(replace(., is.na(.), 0))) %>%
+  mutate(p1 = ifelse(p1 == 0, NA, p1),
+         p2 = ifelse(p2 == 0, NA, p2))
+
+# merging
+crqa_results <- full_join(crqa_real, crqa_shuff) %>%
+  full_join(crqa_surr)
+ 
+  
+```
+
+
+## data plotto
+```{r plotting}
+plotty <- function(data, group_nr){
+  c1 <- data %>%
+    filter(group == group_nr) %>%
+    ggplot() +
+    geom_line(aes(as.numeric(TimeMs.x), hr1S, color = "P1")) +
+    geom_line(aes(as.numeric(TimeMs.x), hr2S, color = "P2")) +
+    labs(x = "time in 100 ms", y = "HR") +
+    theme(legend.position="bottom")
+  
+  # scaled RESP
+  c2 <- data %>%
+    filter(group == group_nr) %>%
+    ggplot() +
+    geom_line(aes(as.numeric(TimeMs.x), resp1S, color = "P1")) +
+    geom_line(aes(as.numeric(TimeMs.x), resp2S, color = "P2")) +
+    labs(x = "time in 100 ms", y = "RESP") +
+    theme(legend.position="bottom")
+  
+  ## colected
+  grid.arrange(c1, c2, ncol=2, top = "Plots of physiological data (HR, RESP, ECG) with downsampling, outlier removal & scaling", 
+               bottom = paste0("Group ", group_nr))
+  
+}
+
+plotty(d4, group_nr = "2")
+```
+
+### RP plotting
+```{r}
+RP=results_test$RP
+RP = matrix(as.numeric(RP), nrow = ncol(RP))
+cols = c("white", "blue4")
+image(RP, xlab = "", ylab = "", col = cols)
+
+Profile=drpdfromts(test$resp1S, test$resp2S,datatype = 'continuous',ws=50,radius=1.68739078850316)
+timecourse = round( seq(-5000,5000,100)/1000, digit = 1)
+mindip = Profile$mindip/1000
+profile = Profile$profile*100
+Prof=data.frame(profile)
+ggplot(Prof, aes(timecourse,profile))+geom_line()+ geom_vline(xintercept = timecourse[mindip], colour='red')
+```
+
+
+
+# MODELING
+## scale variables
+```{r scaling}
+# new df not to overwrite
+crqa_scaled <- crqa_results
+
+# MINMAX
+for (i in c(1:9)) {
+  minc = min(crqa_scaled[,i])
+  maxc = max(crqa_scaled[,i])
+  crqa_scaled[,i] = (crqa_scaled[,i]-minc)/(maxc-minc)
+}
+
+# keep it clean
+rm(i, maxc, minc)
+```
+
+## subsetting
+
+```{r model subset}
+#subsets for modelling 
+crqa_HR <- crqa_scaled %>%
+  filter(metric == "hr1S")
+
+crqa_RESP <- crqa_scaled %>%
+  filter(metric == "resp1S")
+```
+
+
+```{r first modeling}
+#RR based on reality status  
+m1 <- lm(RR ~ condition * reality_status, crqa_RESP) 
+
+m2 <- lm(RR ~ condition * reality_status, crqa_HR)
+summary(m2)
+
+
+#DET based on reality status
+m3 <- lm(DET ~ condition * reality_status, crqa_RESP)
+summary(m3)
+
+m4 <- lm(DET ~ condition * reality_status, crqa_HR)
+summary(m4)
+
+#predicting heart coordination from respiration coordination
+df_list <- split(crqa_results, crqa_results$metric)
+crqa_split <- do.call("cbind", df_list)
+
+m5 <- lm(hr1S.RR ~ resp1S.RR, crqa_split)
+summary(m5)
+
+m6 <- lm(hr1S.DET ~ resp1S.DET, crqa_split)
+summary(m6)
+
+m7 <- lm(hr1S.L ~ resp1S.L, crqa_split)
+summary(m7)
+```
+
+## for quick summary
+```{r bullshit summary function}
+predictors <- names(crqa_real)[1:9]
+all_cals <- paste0(predictors, " ~ condition * reality_status")
+
+model_summary <- function(call, data) {
+  
+  model <- lm(call, data)
+  
+  model_df <- model %>%
+    summary() %>%
+    broom::tidy() %>%
+    mutate(model = as.character(call))
+  
+  return(model_df)
+}
+
+summary_hr <- map_df(all_cals,
+                     model_summary,
+                     crqa_HR)
+
+summary_resp <- map_df(all_cals,
+                       model_summary,
+                       crqa_RESP)
+```
+
+
+# plotting the interactions
+
+Apparent issues:
+--> all zeroes for shuffled for most parameters. 
+
+Things that make sense:
+--> Errorbars are smaller for surrogate comp. w. real (because of more obs.)
+--> Never a significant difference between real & surrogate bc. of huge errorbars of real. 
+
+Different effects plotted:
+--> RR
+--> DET
+--> maxL
+
+```{r interaction plot}
+
+#RR for HR
+ggplot(crqa_HR, aes(condition, RR, color = reality_status, group = reality_status)) +
+  stat_summary(fun.y = mean, geom = "point", size = 1) + 
+  stat_summary(fun.data = mean_cl_normal, geom = "errorbar") +
+  stat_summary(fun.y = mean, geom = "line") +
+  labs(title ="HR")
+
+#RR for RESP
+ggplot(crqa_RESP, aes(condition, RR, color = reality_status, group = reality_status)) +
+  stat_summary(fun.y = mean, geom = "point", size = 1) + 
+  stat_summary(fun.data = mean_cl_normal, geom = "errorbar") +
+  stat_summary(fun.y = mean, geom = "line") +
+  labs(title = "RESP")
+
+#DET for HR
+ggplot(crqa_RESP, aes(condition, DET, color = reality_status, group = reality_status)) +
+  stat_summary(fun.y = mean, geom = "point", size = 1) + 
+  stat_summary(fun.data = mean_cl_normal, geom = "errorbar") +
+  stat_summary(fun.y = mean, geom = "line") +
+  labs(title = "RESP")
+
+#DET for RESP
+ggplot(crqa_RESP, aes(condition, DET, color = reality_status, group = reality_status)) +
+  stat_summary(fun.y = mean, geom = "point", size = 1) + 
+  stat_summary(fun.data = mean_cl_normal, geom = "errorbar") +
+  stat_summary(fun.y = mean, geom = "line") +
+  labs(title = "RESP")
+
+#maxL for HR 
+ggplot(crqa_HR, aes(condition, maxL, color = reality_status, group = reality_status)) +
+  stat_summary(fun.y = mean, geom = "point", size = 1) + 
+  stat_summary(fun.data = mean_cl_normal, geom = "errorbar") +
+  stat_summary(fun.y = mean, geom = "line") +
+  labs(title = "RESP")
+
+#maxL for RESP
+ggplot(crqa_RESP, aes(condition, maxL, color = reality_status, group = reality_status)) +
+  stat_summary(fun.y = mean, geom = "point", size = 2) + 
+  stat_summary(fun.data = mean_cl_normal, geom = "errorbar", size = 0.8) +
+  stat_summary(fun.y = mean, geom = "line", size = 0.8) +
+  labs(title = "RESP")
+
+```
+
+Can heart rate coordination be predicted by respiration coordination?
+Spoiler: as of now (there are some issues with the approach sketched) no. 
+This is intended as a simplified example of the pipeline of predicting. 
+Probably one has to make folds & do cross-validation. 
+
+```{r}
+
+library(tidyverse)
+## getting rid of shuffle because it is shit 
+crqa_split_noshuf <- crqa_split %>%
+  filter(resp1S.reality_status != "shuffled")
+
+
+## 75% of the sample size
+smp_size <- floor(0.75 * nrow(crqa_split_noshuf))
+
+## set the seed to make your partition reproducible
+set.seed(123)
+train_ind <- sample(seq_len(nrow(crqa_split_noshuf)), size = smp_size)
+
+## the above is not taking into account that we would like the diff. conditions / baselines to be equal in training and test - so this is just sample code. 
+
+train <- crqa_split_noshuf[train_ind, ]
+test <- crqa_split_noshuf[-train_ind, ]
+
+## Building models 
+library(pacman)
+p_load(tidyverse, lme4)
+
+## rescaling should be done. 
+model1 = lm(hr1S.DET ~ resp1S.RR + resp1S.DET + resp1S.NRLINE + resp1S.maxL + resp1S.L + resp1S.ENTR + resp1S.rENTR + resp1S.LAM + resp1S.TT + (1|resp1S.condition) + (1|resp1S.reality_status),  data = train, REML = FALSE)
+summary(model1)
+
+## prediction 
+test$pred <- predict(model1, test, allow.new.levels = TRUE)
+
+## predictions visualized 
+ggplot(test, aes(hr1S.DET, pred), color = ) +
+  geom_point() +
+  geom_smooth()
+
+#### cross-validation would be better ####
+
+```
+
