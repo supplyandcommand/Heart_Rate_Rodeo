@@ -842,15 +842,10 @@ ggplot(crqa_RESP, aes(condition, maxL, color = reality_status, group = reality_s
 
 ```
 
-
-## tip for next job
-
-HR directly from resp.
-resp as predictors for HR.
-
-
 Can heart rate coordination be predicted by respiration coordination?
 Spoiler: as of now (there are some issues with the approach sketched) no. 
+This is intended as a simplified example of the pipeline of predicting. 
+Probably one has to make folds & do cross-validation. 
 
 ```{r}
 
