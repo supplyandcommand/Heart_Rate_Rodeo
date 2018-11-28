@@ -740,7 +740,7 @@ summary(m3)
 m4 <- lm(DET ~ condition * reality_status, crqa_HR)
 summary(m4)
 
-#predicting from heart coordination from respiration coordination
+#predicting heart coordination from respiration coordination
 df_list <- split(crqa_results, crqa_results$metric)
 crqa_split <- do.call("cbind", df_list)
 
@@ -755,6 +755,7 @@ summary(m7)
 ```
 
 ## for quick summary
+
 ```{r bullshit summary function}
 predictors <- names(crqa_real)[1:9]
 all_cals <- paste0(predictors, " ~ condition * reality_status")
@@ -782,18 +783,63 @@ summary_resp <- map_df(all_cals,
 
 
 # plotting the interactions
+
+Apparent issues:
+--> all zeroes for shuffled for most parameters. 
+
+Things that make sense:
+--> Errorbars are smaller for surrogate comp. w. real (because of more obs.)
+--> Never a significant difference between real & surrogate bc. of huge errorbars of real. 
+
+Different effects plotted:
+--> RR
+--> DET
+--> maxL
+
 ```{r interaction plot}
+
+#RR for HR
 ggplot(crqa_HR, aes(condition, RR, color = reality_status, group = reality_status)) +
   stat_summary(fun.y = mean, geom = "point", size = 1) + 
   stat_summary(fun.data = mean_cl_normal, geom = "errorbar") +
   stat_summary(fun.y = mean, geom = "line") +
   labs(title ="HR")
 
+#RR for RESP
 ggplot(crqa_RESP, aes(condition, RR, color = reality_status, group = reality_status)) +
   stat_summary(fun.y = mean, geom = "point", size = 1) + 
   stat_summary(fun.data = mean_cl_normal, geom = "errorbar") +
   stat_summary(fun.y = mean, geom = "line") +
   labs(title = "RESP")
+
+#DET for HR
+ggplot(crqa_RESP, aes(condition, DET, color = reality_status, group = reality_status)) +
+  stat_summary(fun.y = mean, geom = "point", size = 1) + 
+  stat_summary(fun.data = mean_cl_normal, geom = "errorbar") +
+  stat_summary(fun.y = mean, geom = "line") +
+  labs(title = "RESP")
+
+#DET for RESP
+ggplot(crqa_RESP, aes(condition, DET, color = reality_status, group = reality_status)) +
+  stat_summary(fun.y = mean, geom = "point", size = 1) + 
+  stat_summary(fun.data = mean_cl_normal, geom = "errorbar") +
+  stat_summary(fun.y = mean, geom = "line") +
+  labs(title = "RESP")
+
+#maxL for HR 
+ggplot(crqa_HR, aes(condition, maxL, color = reality_status, group = reality_status)) +
+  stat_summary(fun.y = mean, geom = "point", size = 1) + 
+  stat_summary(fun.data = mean_cl_normal, geom = "errorbar") +
+  stat_summary(fun.y = mean, geom = "line") +
+  labs(title = "RESP")
+
+#maxL for RESP
+ggplot(crqa_RESP, aes(condition, maxL, color = reality_status, group = reality_status)) +
+  stat_summary(fun.y = mean, geom = "point", size = 2) + 
+  stat_summary(fun.data = mean_cl_normal, geom = "errorbar", size = 0.8) +
+  stat_summary(fun.y = mean, geom = "line", size = 0.8) +
+  labs(title = "RESP")
+
 ```
 
 
@@ -801,3 +847,48 @@ ggplot(crqa_RESP, aes(condition, RR, color = reality_status, group = reality_sta
 
 HR directly from resp.
 resp as predictors for HR.
+
+
+Can heart rate coordination be predicted by respiration coordination?
+Spoiler: as of now (there are some issues with the approach sketched) no. 
+
+```{r}
+
+library(tidyverse)
+## getting rid of shuffle because it is shit 
+crqa_split_noshuf <- crqa_split %>%
+  filter(resp1S.reality_status != "shuffled")
+
+
+## 75% of the sample size
+smp_size <- floor(0.75 * nrow(crqa_split_noshuf))
+
+## set the seed to make your partition reproducible
+set.seed(123)
+train_ind <- sample(seq_len(nrow(crqa_split_noshuf)), size = smp_size)
+
+## the above is not taking into account that we would like the diff. conditions / baselines to be equal in training and test - so this is just sample code. 
+
+train <- crqa_split_noshuf[train_ind, ]
+test <- crqa_split_noshuf[-train_ind, ]
+
+## Building models 
+library(pacman)
+p_load(tidyverse, lme4)
+
+## rescaling should be done. 
+model1 = lm(hr1S.DET ~ resp1S.RR + resp1S.DET + resp1S.NRLINE + resp1S.maxL + resp1S.L + resp1S.ENTR + resp1S.rENTR + resp1S.LAM + resp1S.TT + (1|resp1S.condition) + (1|resp1S.reality_status),  data = train, REML = FALSE)
+summary(model1)
+
+## prediction 
+test$pred <- predict(model1, test, allow.new.levels = TRUE)
+
+## predictions visualized 
+ggplot(test, aes(hr1S.DET, pred), color = ) +
+  geom_point() +
+  geom_smooth()
+
+#### cross-validation would be better ####
+
+```
+
