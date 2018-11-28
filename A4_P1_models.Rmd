@@ -11,6 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(pacman)
 p_load(tidyverse,
        gridExtra, #grid.arrange()
+       egg,
        crqa, #crqa()
        lmerTest,
        doParallel, #parallel processing
@@ -200,6 +201,13 @@ Different effects plotted:
 --> DET
 --> maxL
 
+```{r}
+#model predictions
+crqa_RESP_fit <- crqa_RESP %>%
+  cbind(predict(m3, interval = 'confidence'))
+```
+
+
 ```{r interaction plot}
 
 #RR for HR
@@ -224,11 +232,50 @@ ggplot(crqa_RESP, aes(condition, DET, color = reality_status, group = reality_st
   labs(title = "RESP")
 
 #DET for RESP
-ggplot(crqa_RESP, aes(condition, DET, color = reality_status, group = reality_status)) +
-  stat_summary(fun.y = mean, geom = "point", size = 1) + 
-  stat_summary(fun.data = mean_cl_normal, geom = "errorbar") +
+### REAL DATA
+observed_resp_plot <- crqa_RESP %>%
+  filter(reality_status != "shuffled") %>%
+  ggplot(aes(condition, DET, color = reality_status, group = reality_status)) +
+  stat_summary(fun.y = mean, geom = "point", size = 2) + 
+  stat_summary(fun.data = mean_cl_normal, geom = "errorbar", width = 0.5) +
   stat_summary(fun.y = mean, geom = "line") +
-  labs(title = "RESP")
+  labs(title = "RESP observed data", subtitle = "\n\nwith 95% CI") +
+  #guides(color=FALSE) +
+  theme_bw()
+
+### MODEL
+model_resp_plot <- crqa_RESP_fit %>%
+  filter(reality_status != "shuffled") %>%
+  ggplot(aes(condition, fit, color = reality_status, group = reality_status)) +
+  stat_summary(fun.y = mean, geom = "point", size = 2) + 
+  geom_errorbar(aes(ymin = lwr, ymax = upr), width = 0.5) +
+  stat_summary(fun.y = mean, geom = "line") +
+  labs(title = "RESP model mean predictions", 
+       subtitle = "DET ~ condition * reality_satus \n\nwith 95% CI of fitted value",
+       y = "fitted DET") +
+  #guides(color=FALSE) +
+  theme_bw()
+
+### WITHOUT EXCLUDING SHUFFLED
+observed_bogus <- crqa_RESP %>%
+  ggplot(aes(condition, DET, color = reality_status, group = reality_status)) +
+  stat_summary(fun.y = mean, geom = "point", size = 2) + 
+  stat_summary(fun.data = mean_cl_normal, geom = "errorbar", width = 0.5) +
+  stat_summary(fun.y = mean, geom = "line") +
+  labs(title = "RESP observed data", subtitle = "\n\nwith 95% CI") +
+  #guides(color=FALSE) +
+  theme_bw()
+
+model_bogus <- crqa_RESP_fit %>%
+  ggplot(aes(condition, fit, color = reality_status, group = reality_status)) +
+  stat_summary(fun.y = mean, geom = "point", size = 2) + 
+  geom_errorbar(aes(ymin = lwr, ymax = upr), width = 0.5) +
+  stat_summary(fun.y = mean, geom = "line") +
+  labs(title = "RESP model mean predictions", 
+       subtitle = "DET ~ condition * reality_satus \n\nwith 95% CI of fitted value",
+       y = "fitted DET") +
+  #guides(color=FALSE) +
+  theme_bw()
 
 #maxL for HR 
 ggplot(crqa_HR, aes(condition, maxL, color = reality_status, group = reality_status)) +
@@ -245,6 +292,57 @@ ggplot(crqa_RESP, aes(condition, maxL, color = reality_status, group = reality_s
   labs(title = "RESP")
 
 ```
+
+## grid.arrange
+```{r}
+grid_arrange_shared_legend <-
+  function(...,
+           ncol = length(list(...)),
+           nrow = 1,
+           position = c("bottom", "right")) {
+    
+    plots <- list(...)
+    position <- match.arg(position)
+    g <-
+      ggplotGrob(plots[[1]] + theme(legend.position = position))$grobs
+    legend <- g[[which(sapply(g, function(x)
+      x$name) == "guide-box")]]
+    lheight <- sum(legend$height)
+    lwidth <- sum(legend$width)
+    gl <- lapply(plots, function(x)
+      x + theme(legend.position = "none"))
+    gl <- c(gl, ncol = ncol, nrow = nrow)
+    
+    combined <- switch(
+      position,
+      "bottom" = arrangeGrob(
+        do.call(arrangeGrob, gl),
+        legend,
+        ncol = 1,
+        heights = unit.c(unit(1, "npc") - lheight, lheight)
+      ),
+      "right" = arrangeGrob(
+        do.call(arrangeGrob, gl),
+        legend,
+        ncol = 2,
+        widths = unit.c(unit(1, "npc") - lwidth, lwidth)
+      )
+    )
+    
+    grid.newpage()
+    grid.draw(combined)
+    
+    # return gtable invisibly
+    invisible(combined)
+    
+  }
+
+grid_arrange_shared_legend(observed_resp_plot, model_resp_plot)
+
+grid_arrange_shared_legend(observed_bogus, model_bogus)
+
+```
+
 
 Can heart rate coordination be predicted by respiration coordination?
 Spoiler: as of now (there are some issues with the approach sketched) no. 
