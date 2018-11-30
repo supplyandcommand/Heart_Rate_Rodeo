@@ -364,7 +364,8 @@ observed_resp_plot <- crqa_RESP %>%
   stat_summary(fun.y = mean, geom = "point", size = 2) + 
   stat_summary(fun.data = mean_cl_normal, geom = "errorbar", width = 0.5) +
   stat_summary(fun.y = mean, geom = "line") +
-  labs(title = "RESP observed data", subtitle = "\n\nwith 95% CI") +
+  ylim(c(0.7, 0.9)) +
+  labs(title = "RESP observed data", subtitle = "\nmin-max scaled, with 95% CI") +
   #guides(color=FALSE) +
   theme_bw()
 
@@ -375,8 +376,9 @@ model_resp_plot <- crqa_RESP_fit %>%
   stat_summary(fun.y = mean, geom = "point", size = 2) + 
   geom_errorbar(aes(ymin = lwr, ymax = upr), width = 0.5) +
   stat_summary(fun.y = mean, geom = "line") +
+  ylim(c(0.7, 0.9)) +
   labs(title = "RESP model mean predictions", 
-       subtitle = "DET ~ condition * reality_satus \n\nwith 95% CI of fitted value",
+       subtitle = "DET ~ condition * reality_satus \nmin-max scaled, with 95% CI of fitted value",
        y = "fitted DET") +
   #guides(color=FALSE) +
   theme_bw()
@@ -387,7 +389,8 @@ observed_bogus <- crqa_RESP %>%
   stat_summary(fun.y = mean, geom = "point", size = 2) + 
   stat_summary(fun.data = mean_cl_normal, geom = "errorbar", width = 0.5) +
   stat_summary(fun.y = mean, geom = "line") +
-  labs(title = "RESP observed data", subtitle = "\n\nwith 95% CI") +
+  ylim(c(0, 0.9)) +
+  labs(title = "RESP observed data", subtitle = "\nmin-max scaled, with 95% CI") +
   #guides(color=FALSE) +
   theme_bw()
 
@@ -396,8 +399,9 @@ model_bogus <- crqa_RESP_fit %>%
   stat_summary(fun.y = mean, geom = "point", size = 2) + 
   geom_errorbar(aes(ymin = lwr, ymax = upr), width = 0.5) +
   stat_summary(fun.y = mean, geom = "line") +
+  ylim(c(0, 0.9)) +
   labs(title = "RESP model mean predictions", 
-       subtitle = "DET ~ condition * reality_satus \n\nwith 95% CI of fitted value",
+       subtitle = "DET ~ condition * reality_satus \nmin-max scaled, with 95% CI of fitted value",
        y = "fitted DET") +
   #guides(color=FALSE) +
   theme_bw()
