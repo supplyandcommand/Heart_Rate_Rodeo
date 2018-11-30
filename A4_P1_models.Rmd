@@ -85,19 +85,144 @@ plotty <- function(data, group_nr){
 plotty(d4, group_nr = "2")
 ```
 
-### RP plotting
+# RP plotting
+## CRQA function
 ```{r}
-RP=results_test$RP
-RP = matrix(as.numeric(RP), nrow = ncol(RP))
-cols = c("white", "blue4")
-image(RP, xlab = "", ylab = "", col = cols)
+crqa_RP_HR <- function(df, group_nr_cond) {
+  
+  # filtering argument
+  filtering_args <- data.frame(whack = group_nr_cond) %>%
+    separate(whack, c("cond", "group_nr"), sep = "_")
+  
+  cond <- filtering_args$cond
+  group_nr <- filtering_args$group_nr
+  
+  # filtering
+  data <- df %>%
+    dplyr::filter(condition == as.character(cond)) %>%
+    dplyr::filter(group ==as.numeric(group_nr))
+    
+  
+  # computing
+  crqa_list <- crqa(ts1 = data[["hr1S"]], 
+                            ts2 = data[["hr2S"]], 
+                            delay = 10, #delay 
+                            embed = 16, #emdim 
+                            radius = 1.4586380, #radius
+                            normalize = 0,
+                            rescale = 0,
+                            mindiagline = 2,
+                            minvertline = 2)
 
-Profile=drpdfromts(test$resp1S, test$resp2S,datatype = 'continuous',ws=50,radius=1.68739078850316)
-timecourse = round( seq(-5000,5000,100)/1000, digit = 1)
-mindip = Profile$mindip/1000
-profile = Profile$profile*100
-Prof=data.frame(profile)
-ggplot(Prof, aes(timecourse,profile))+geom_line()+ geom_vline(xintercept = timecourse[mindip], colour='red')
+  return(crqa_list)
+}
+
+crqa_RP_RESP <- function(df, group_nr_cond) {
+  
+  # filtering argument
+  filtering_args <- data.frame(whack = group_nr_cond) %>%
+    separate(whack, c("cond", "group_nr"), sep = "_")
+  
+  cond <- filtering_args$cond
+  group_nr <- filtering_args$group_nr
+  
+  # filtering
+  data <- df %>%
+    dplyr::filter(condition == as.character(cond)) %>%
+    dplyr::filter(group ==as.numeric(group_nr))
+    
+  
+  # computing
+  crqa_list <- crqa(ts1 = data[["resp1S"]], 
+                            ts2 = data[["resp2S"]], 
+                            delay = 22.5, #delay 
+                            embed = 2, #emdim 
+                            radius = 0.4078281, #radius
+                            normalize = 0,
+                            rescale = 0,
+                            mindiagline = 2,
+                            minvertline = 2)
+
+  return(crqa_list)
+}
+```
+
+## group with highest RR 
+Group 4 has the highest average RR of respiration
+All heartrate RR is similarly bad. Therefore, group 4 will be used for demonstration
+```{r}
+avg_rr <- crqa_real %>%
+  group_by(group, metric) %>%
+  summarise(meanRR = mean(RR),
+            meanmaxL = mean(maxL),
+            meanL = mean(L))
+```
+
+## getting RP plots
+```{r}
+hr4sy <- crqa_RP_HR(d4, "Synchronous_4")$RP
+hr4co <- crqa_RP_HR(d4, "Conversation_4")$RP
+hr4tt <- crqa_RP_HR(d4, "TurnTaking_4")$RP
+
+resp4sy <- crqa_RP_RESP(d4, "Synchronous_4")$RP
+resp4co <- crqa_RP_RESP(d4, "Conversation_4")$RP
+resp4tt <- crqa_RP_RESP(d4, "TurnTaking_4")$RP
+```
+
+OLD DON'T RUN
+```{r}
+## MATRIX
+hr4sy_m = matrix(as.numeric(hr4sy), nrow = ncol(hr4sy))
+hr4co_m = matrix(as.numeric(hr4co), nrow = ncol(hr4co))
+hr4tt_m = matrix(as.numeric(hr4tt), nrow = ncol(hr4tt))
+
+resp4sy_m = matrix(as.numeric(resp4sy), nrow = ncol(resp4sy))
+resp4co_m = matrix(as.numeric(resp4co), nrow = ncol(resp4co))
+resp4tt_m = matrix(as.numeric(resp4tt), nrow = ncol(resp4tt))
+
+
+## COLORS
+cols = c("white", "black")
+par(pty = "s")
+
+
+## PLOTS
+### HR PLOTS
+image(hr4sy_m, main = "HR, Synchronous", sub = "Group 4", 
+      xlab = "", ylab = "", col = cols)
+
+image(hr4co_m, main = "HR, Conversation", sub = "Group 4", 
+      xlab = "", ylab = "", col = cols)
+
+image(hr4tt_m, main = "HR, Turn Taking", sub = "Group 4", 
+      xlab = "", ylab = "", col = cols)
+
+
+### RESP IMAGES
+
+image(resp4sy_m, main = "RESP, Synchronous", sub = "Group 4", 
+      xlab = "", ylab = "", col = cols)
+
+image(resp4co_m, main = "RESP, Conversation", sub = "Group 4", 
+      xlab = "", ylab = "", col = cols)
+
+image(resp4tt_m, main = "RESP, Turn Taking", sub = "Group 4", 
+      xlab = "", ylab = "", col = cols)
+
+```
+
+```{r} 
+# RP=results_test$RP
+# RP = matrix(as.numeric(RP), nrow = ncol(RP))
+# cols = c("white", "blue4")
+# image(RP, xlab = "", ylab = "", col = cols)
+# 
+# Profile=drpdfromts(test$resp1S, test$resp2S,datatype = 'continuous',ws=50,radius=1.68739078850316)
+# timecourse = round( seq(-5000,5000,100)/1000, digit = 1)
+# mindip = Profile$mindip/1000
+# profile = Profile$profile*100
+# Prof=data.frame(profile)
+# ggplot(Prof, aes(timecourse,profile))+geom_line()+ geom_vline(xintercept = timecourse[mindip], colour='red')
 ```
 
 

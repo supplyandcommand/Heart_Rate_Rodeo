@@ -19,8 +19,8 @@ p_load(tidyverse,
        groupdata2) #downsampling
 
 # parallel processing
-cl <- makeCluster(detectCores(), type='PSOCK')
-registerDoParallel(cl)
+#cl <- makeCluster(detectCores(), type='PSOCK')
+#registerDoParallel(cl)
 ```
 
 # PREPROCESSING
