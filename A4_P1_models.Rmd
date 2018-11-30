@@ -16,6 +16,7 @@ p_load(tidyverse,
        lmerTest,
        doParallel, #parallel processing
        reshape2,
+       merTools, #predictInterval
        Hmisc, #errorbars in plotting
        groupdata2) #downsampling
 
@@ -211,6 +212,7 @@ image(resp4tt_m, main = "RESP, Turn Taking", sub = "Group 4",
 
 ```
 
+TRASH BIN
 ```{r} 
 # RP=results_test$RP
 # RP = matrix(as.numeric(RP), nrow = ncol(RP))
@@ -327,9 +329,18 @@ Different effects plotted:
 --> maxL
 
 ```{r}
-#model predictions
-crqa_RESP_fit <- crqa_RESP %>%
-  cbind(predict(m3, interval = 'confidence'))
+# input data
+reality_status <- as.factor(c(rep("real", 3), 
+                              rep("shuffled", 3), 
+                              rep("surrogate", 3)))
+
+condition <- as.factor(rep(c("Conversation", "Synchronous", "TurnTaking"), 3))
+
+input_det <- data.frame(reality_status, condition)
+
+
+# output data
+predicted_det <- cbind(input_det ,predict(m3, input_det, interval = 'confidence'))
 ```
 
 
@@ -370,7 +381,7 @@ observed_resp_plot <- crqa_RESP %>%
   theme_bw()
 
 ### MODEL
-model_resp_plot <- crqa_RESP_fit %>%
+model_resp_plot <- predicted_det %>%
   filter(reality_status != "shuffled") %>%
   ggplot(aes(condition, fit, color = reality_status, group = reality_status)) +
   stat_summary(fun.y = mean, geom = "point", size = 2) + 
@@ -394,7 +405,7 @@ observed_bogus <- crqa_RESP %>%
   #guides(color=FALSE) +
   theme_bw()
 
-model_bogus <- crqa_RESP_fit %>%
+model_bogus <- predicted_det %>%
   ggplot(aes(condition, fit, color = reality_status, group = reality_status)) +
   stat_summary(fun.y = mean, geom = "point", size = 2) + 
   geom_errorbar(aes(ymin = lwr, ymax = upr), width = 0.5) +
